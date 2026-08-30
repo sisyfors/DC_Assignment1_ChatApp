@@ -50,12 +50,130 @@ namespace ChatServer
             return true;
         }
 
+        public bool CreateChannel(string channelName)
+        {
+            for (int i = 0; i < channels.Count; i++)
+            {
+                if (channels[i].Name == channelName)
+                {
+                    return false;
+                }
+            }
+
+            Channel newChannel = new Channel();
+            newChannel.Name = channelName;
+            channels.Add(newChannel);
+
+            return true;
+        }
+
+        public void JoinChannel(string userId, string channelName)
+        {
+            Channel targetChannel = null;
+
+            for (int i = 0; i < channels.Count; i++)
+            {
+                if (channels[i].Name == channelName)
+                {
+                    targetChannel = channels[i];
+                    break;
+                }
+            }
+
+            if (targetChannel == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < channels.Count; i++)
+            {
+                for (int j = 0; j < channels[i].Users.Count; j++)
+                {
+                    if (channels[i].Users[j] == userId)
+                    {
+                        channels[i].Users.RemoveAt(j);
+                        channels[i].JoinIndexes.RemoveAt(j);
+
+                        break;
+                    }
+                }
+            }
+
+            if (!targetChannel.Users.Contains(userId))
+            {
+                targetChannel.Users.Add(userId);
+                targetChannel.JoinIndexes.Add(targetChannel.Messages.Count);
+            }
+        }
+
+        public bool LeaveChannel(string userId, string channelName)
+        { 
+            return true;
+        }
+
+        
+        public void SendMessage(string channelName, string userId, string message)
+        {
+            for (int i = 0; i < channels.Count; i++)
+            {
+                if (channels[i].Name == channelName)
+                {
+                    string chatMessage = userId + ": " + message;
+                    channels[i].Messages.Add(chatMessage);
+                    return;
+                }
+            }
+        }
+
         private static readonly List<Channel> channels = new List<Channel>
         {
                 new Channel { Name = "General" },
                 new Channel { Name = "Room1" },
                 new Channel { Name = "Room2" }
         };
+
+        public List<String> GetUsers(string channelName, string userId)
+        {
+
+            for (int i = 0; i < channels.Count; i++)
+            {
+                if (channels[i].Name == channelName)
+                {
+                    return channels[i].Users;
+                }
+            }
+
+            return new List<string>();
+        }
+
+        public List<string> GetMessages(string channelName, string userId)
+        {
+            for (int i = 0; i < channels.Count; i++)
+            {
+                if (channels[i].Name == channelName)
+                {
+                    for (int j = 0; j < channels[i].Users.Count; j++)
+                    {
+                        if (channels[i].Users[j] == userId)
+                        {
+                            int startIndex = channels[i].JoinIndexes[j];
+
+                            List<string> messages = new List<string>();
+
+                            for (int k = startIndex; k < channels[i].Messages.Count; k++)
+                            {
+                                messages.Add(
+                                    channels[i].Messages[k]);
+                            }
+
+                            return messages;
+                        }
+                    }
+                }
+            }
+
+            return new List<string>();
+        }
 
         public List<Channel> GetChannels()
         {

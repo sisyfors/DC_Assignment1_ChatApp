@@ -53,13 +53,13 @@
                     TextWrapping="Wrap"
                     TextAlignment="Center"
                     Margin="0,15,0,0"/>
-
-
+                
+                
             </StackPanel>
 
             <!-- Channel List View -->
+             
             
-           
             <StackPanel
                 x:Name="ChannelView"
                 Visibility="Collapsed">
@@ -82,6 +82,33 @@
                     HorizontalAlignment="Center"
                     Click="JoinChannelButton_Click"/>
 
+
+                <!-- CREATE CHANNEL -->
+
+                <TextBlock
+                    Text="Create Channel"
+                    FontSize="18"
+                    FontWeight="Bold"
+                    Margin="0,0,0,8"/>
+
+                <TextBox
+                    x:Name="NewChannelTextBox"
+                    Height="30"
+                    Margin="0,0,0,10"/>
+
+                <Button
+                    Content="Create Channel"
+                    Width="140"
+                    Height="35"
+                    HorizontalAlignment="Center"
+                    Click="CreateChannelButton_Click"/>
+
+                <TextBlock
+                    x:Name="ChannelErrorTextBlock"
+                    Foreground="Red"
+                    TextAlignment="Center"
+                    Margin="0,10,0,0"/>
+
                 <Button
                     Content="Sign Out"
                     Width="140"
@@ -91,6 +118,120 @@
                     Click="SignOutButton_Click"/>
 
             </StackPanel>
+
+
+            <!-- CHAT VIEW -->
+            <Grid
+                x:Name="ChatView"
+                Visibility="Collapsed">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+
+                <!-- CHANNEL TITLE -->
+
+                <TextBlock
+                    x:Name="CurrentChannelTextBlock"
+                    Grid.Row="0"
+                    Text="Channel"
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Margin="0,0,0,10"/>
+
+
+                <!-- MESSAGES AND MEMBERS -->
+
+                <Grid Grid.Row="1">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+
+                    <!-- MESSAGES -->
+
+                    <ListBox
+                        x:Name="MessageListBox"
+                        Grid.Column="0"
+                        Margin="0,0,10,0"/>
+
+
+                    <!-- MEMBERS -->
+
+                    <StackPanel
+                        Grid.Column="1">
+
+                        <TextBlock
+                            Text="Members"
+                            FontWeight="Bold"
+                            Margin="0,0,0,5"/>
+
+                        <ListBox
+                            x:Name="MemberListBox"
+                            Height="250"/>
+
+                    </StackPanel>
+
+                </Grid>
+
+
+                <!-- MESSAGE INPUT -->
+
+                <Grid
+                    Grid.Row="2"
+                    Margin="0,15,0,0">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox
+                        x:Name="MessageTextBox"
+                        Grid.Column="0"
+                        Height="35"
+                        Margin="0,0,10,0"/>
+
+                    <Button
+                        Grid.Column="1"
+                        Content="Send"
+                        Width="90"
+                        Height="35"
+                        Click="SendMessageButton_Click"/>
+
+                </Grid>
+
+
+                <!-- CHANNEL CONTROLS -->
+
+                <StackPanel
+                    Grid.Row="3"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Margin="0,15,0,0">
+
+                    <Button
+                        Content="Leave Channel"
+                        Width="120"
+                        Height="35"
+                        Click="LeaveChannelButton_Click"/>
+
+                    <Button
+                        Content="Sign Out"
+                        Width="120"
+                        Height="35"
+                        Margin="10,0,0,0"
+                        Click="SignOutButton_Click"/>
+
+                </StackPanel>
+
+            </Grid>
 
         </Grid>
 
