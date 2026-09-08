@@ -122,8 +122,7 @@
 
             <!-- CHAT VIEW -->
             <Grid
-                x:Name="ChatView"
-                Visibility="Collapsed">
+                x:Name="ChatView" Visibility="Collapsed">
 
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>

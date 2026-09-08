@@ -36,5 +36,11 @@ namespace ChatContracts
 
         [OperationContract]
         List<string> GetMessages(string channelName, string userId);
+
+        [OperationContract]
+        void SendPrivateMessage(string fromUserId, string toUserId, string message);
+
+        [OperationContract]
+        List<string> GetPrivateMessages(string userId, string otherUserId);
     }
 }

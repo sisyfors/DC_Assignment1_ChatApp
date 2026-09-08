@@ -12,6 +12,9 @@ namespace ChatServer
         private static readonly HashSet<string> signedInUsers =
             new HashSet<string>();
 
+        private static readonly HashSet<PrivateChannel> privateChannels =
+            new HashSet<PrivateChannel>();
+
         public bool SignIn(string userId, out string reason)
         {
             reason = "";
@@ -178,6 +181,42 @@ namespace ChatServer
         public List<Channel> GetChannels()
         {
             return channels;
+        }
+
+        public void SendPrivateMessage(string fromUserId, string toUserId, string message)
+        {
+            foreach(var privateChannel in privateChannels)
+            {
+                if ((privateChannel.Sender == fromUserId && privateChannel.Recipient == toUserId) ||
+                    (privateChannel.Sender == toUserId && privateChannel.Recipient == fromUserId))
+                {
+                    string chatMessage = fromUserId + ": " + message;
+                    privateChannel.Messages.Add(chatMessage);
+                    return;
+                }
+                                 
+            }
+
+            PrivateChannel newPrivateChannel = new PrivateChannel
+            {
+                Sender = fromUserId,
+                Recipient = toUserId,
+                Messages = new List<string> { fromUserId + ": " + message }
+            };
+            privateChannels.Add(newPrivateChannel);
+        }
+
+        public List<string> GetPrivateMessages(string userId, string otherUserId)
+        {
+            foreach(var privateChannel in privateChannels)
+            {
+                if ((privateChannel.Sender == userId && privateChannel.Recipient == otherUserId) ||
+                    (privateChannel.Sender == otherUserId && privateChannel.Recipient == userId))
+                {
+                    return privateChannel.Messages;
+                }
+            }
+            return new List<string>();
         }
     }
 }

@@ -186,22 +186,52 @@ namespace ChatClient
           object sender,
           RoutedEventArgs e)
         {
-            string message =
-                MessageTextBox.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(message))
+            if (MemberListBox.SelectedItem == null || MemberListBox.SelectedItem.ToString() == currentUserId)
             {
-                return;
+                string message =
+                    MessageTextBox.Text.Trim();
+
+                if (string.IsNullOrWhiteSpace(message))
+                {
+                    return;
+                }
+
+                chatService.SendMessage(
+                    currentChannelName,
+                    currentUserId,
+                    message);
+
+                MessageTextBox.Clear();
+
+                LoadMessages();
             }
+            else
+            {
+                string message =
+                    MessageTextBox.Text.Trim();
 
-            chatService.SendMessage(
-                currentChannelName,
-                currentUserId,
-                message);
+                if (string.IsNullOrWhiteSpace(message))
+                {
+                    return;
+                }
 
-            MessageTextBox.Clear();
+                string recipientUserId =
+                    MemberListBox.SelectedItem.ToString();
 
-            LoadMessages();
+                chatService.SendPrivateMessage(
+                    currentUserId,
+                    recipientUserId,
+                    message);
+
+                MessageTextBox.Clear();
+
+                PrivateWindow privateWindow =
+                    new PrivateWindow(currentUserId, recipientUserId);
+
+                privateWindow.Show();
+
+                LoadPrivateMessages(recipientUserId);
+            }
         }
 
         private void LeaveChannelButton_Click(
@@ -250,6 +280,19 @@ namespace ChatClient
                     currentChannelName,
                     currentUserId);
 
+            for (int i = 0; i < messages.Count; i++)
+            {
+                MessageListBox.Items.Add(messages[i]);
+            }
+        }
+
+        private void LoadPrivateMessages(string otherUserId)
+        {
+            MessageListBox.Items.Clear();
+            List<string> messages =
+                chatService.GetPrivateMessages(
+                    currentUserId,
+                    otherUserId);
             for (int i = 0; i < messages.Count; i++)
             {
                 MessageListBox.Items.Add(messages[i]);
