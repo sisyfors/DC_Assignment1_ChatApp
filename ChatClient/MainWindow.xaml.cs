@@ -12,9 +12,10 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-
+using System.IO;
 using System.ServiceModel;
 using ChatContracts;
+using Microsoft.Win32;
 
 namespace ChatClient
 {
@@ -260,6 +261,7 @@ namespace ChatClient
 
                 MessageListBox.Items.Clear();
                 MemberListBox.Items.Clear();
+                FilesListBox.Items.Clear();
 
                 LoadChannels();
             }
@@ -311,6 +313,64 @@ namespace ChatClient
             foreach (string user in users)
             {
                 MemberListBox.Items.Add(user);
+            }
+        }
+
+        private void UploadButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog uploadBox = new OpenFileDialog();
+            uploadBox.Filter = "Allowed Files|*.txt;*.png;*.jpg;*.jpeg;*.gif;*.bmp";
+
+            if(uploadBox.ShowDialog() == true)
+            {
+                string filePath = uploadBox.FileName;
+                string fileName = System.IO.Path.GetFileName(filePath);
+                byte[] fileData = File.ReadAllBytes(filePath);
+
+                chatService.ShareFile(currentChannelName, currentUserId, fileName, fileData);
+                MessageBox.Show("File uploaded successfully.", "Upload File");
+            }
+
+            FilesListBox.Items.Clear();
+
+            List<FileMetaInfo> files = chatService.GetSharedFiles(currentChannelName);
+            
+             foreach (FileMetaInfo file in files)
+             {
+                FilesListBox.Items.Add(file);
+             }
+        }
+
+        private void DownloadButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                FileMetaInfo selectedFile = FilesListBox.SelectedItem as FileMetaInfo;
+                if(selectedFile != null)
+                {
+                    byte[] fileData = chatService.DownloadFile(currentChannelName, selectedFile.FileId);
+
+                    SaveFileDialog saveFileDialog = new SaveFileDialog();
+                    saveFileDialog.FileName = selectedFile.Filename;
+
+                    if (saveFileDialog.ShowDialog() == true)
+                    {
+                        File.WriteAllBytes(saveFileDialog.FileName, fileData);
+                        MessageBox.Show("File downloaded successfully.", "Download File");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Please select a file to download.", "Download File");
+                }
+            }
+            catch(FileNotFoundException ex)
+            {
+                MessageBox.Show(ex.Message, "Download File");
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}", "Download File");
             }
         }
     }

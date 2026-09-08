@@ -33,6 +33,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -44,6 +45,8 @@
   <ItemGroup>
     <Compile Include="Channel.cs" />
     <Compile Include="Class1.cs" />
+    <Compile Include="FileSizeException.cs" />
+    <Compile Include="ExtensionException.cs" />
     <Compile Include="IChatService.cs" />
     <Compile Include="PrivateChannel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

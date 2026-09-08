@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.ServiceModel;
+using System.Runtime.Serialization;
 
 namespace ChatContracts
 {
@@ -42,5 +43,30 @@ namespace ChatContracts
 
         [OperationContract]
         List<string> GetPrivateMessages(string userId, string otherUserId);
+
+        [OperationContract]
+        void ShareFile(string channelName, string fromUserId, string fileName, byte[] fileData);
+
+        [OperationContract]
+        List<FileMetaInfo> GetSharedFiles(string channelName);
+
+        [OperationContract]
+        byte[] DownloadFile(string channelName, string fileId);
+    }
+
+    [DataContract]
+    public class FileMetaInfo
+    {
+        [DataMember]
+        public string FileId { get; set; }
+        [DataMember]
+        public string Filename { get; set; }
+        [DataMember]
+        public string Sender { get; set; }
+
+        public override string ToString()
+        {
+            return $"{Filename} (from: {Sender})";
+        }
     }
 }

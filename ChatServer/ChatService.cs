@@ -1,9 +1,11 @@
-﻿using System;
+﻿using ChatContracts;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
-using ChatContracts;
+using System.IO;
 
 namespace ChatServer
 {
@@ -15,6 +17,10 @@ namespace ChatServer
         private static readonly HashSet<PrivateChannel> privateChannels =
             new HashSet<PrivateChannel>();
 
+        private static readonly string[] allowedExtensions = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".txt" };
+        private static Dictionary<string, byte[]> files = new Dictionary<string, byte[]>();
+        private static Dictionary<string, List<FileMetaInfo>> channelFiles = new Dictionary<string, List<FileMetaInfo>>();
+        
         public bool SignIn(string userId, out string reason)
         {
             reason = "";
@@ -217,6 +223,62 @@ namespace ChatServer
                 }
             }
             return new List<string>();
+        }
+
+        public void ShareFile(string channelName, string fromUserId, string fileName, byte[] fileData)
+        {
+            string extension = Path.GetExtension(fileName).ToLower();
+
+            if(!allowedExtensions.Contains(extension))
+            {
+                throw new ExtensionException($"File extension '{extension}' is not allowed.");
+            }
+            
+            if (fileData.Length > 2 * 1024 * 1024) // 2 MB limit
+            {
+                throw new FileSizeException("File size exceeds the maximum allowed size of 2 MB.");
+            }
+
+            string fileId = Guid.NewGuid().ToString();
+
+            files[fileId] = fileData;
+
+            if (!channelFiles.ContainsKey(channelName))
+            {
+                channelFiles[channelName] = new List<FileMetaInfo>();
+            }
+
+            channelFiles[channelName].Add(new FileMetaInfo
+            {
+                FileId = fileId,
+                Filename = fileName,
+                Sender = fromUserId
+            });
+        }
+
+        public List<FileMetaInfo> GetSharedFiles(string channelName)
+        {
+            if (channelFiles.ContainsKey(channelName))
+            {
+                return channelFiles[channelName];
+            }
+            return new List<FileMetaInfo>();
+        }
+
+        public byte[] DownloadFile(string channelName, string fileId)
+        {
+            if(channelFiles.ContainsKey(channelName))
+            {
+                for (int i = 0; i < channelFiles[channelName].Count; i++)
+                {
+                    if (channelFiles[channelName][i].FileId == fileId && files.ContainsKey(fileId))
+                    {
+                        return files[fileId];
+                    }
+                }
+            }
+            
+            throw new FileNotFoundException("File not found.");
         }
     }
 }
