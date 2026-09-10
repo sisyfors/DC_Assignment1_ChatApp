@@ -3,4 +3,5 @@
   <Project Path="ChatClient/ChatClient.csproj" Id="0c8bfe11-8966-4fcd-90e4-307afd2c5547" />
   <Project Path="ChatContracts/ChatContracts.csproj" Id="86c69f99-637d-4fd3-976d-233566c2917b" />
   <Project Path="ChatServer/ChatServer.csproj" Id="fb7d2c85-d7b1-470b-81a5-6f18d3d6c193" />
+  <Project Path="DuplexClient/DuplexClient.csproj" Id="1f310396-df0d-4baf-90bc-e351a032a7b9" />
 </Solution>

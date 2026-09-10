@@ -6,9 +6,14 @@ using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.ServiceModel;
 
 namespace ChatServer
 {
+    [ServiceBehavior(
+       ConcurrencyMode = ConcurrencyMode.Multiple,
+       UseSynchronizationContext = false)]
     public class ChatService : IChatService
     {
         private static readonly HashSet<string> signedInUsers =
@@ -22,7 +27,8 @@ namespace ChatServer
         private static Dictionary<string, List<FileMetaInfo>> channelFiles = new Dictionary<string, List<FileMetaInfo>>();
 
         private static Dictionary<string, List<string>> privateNotifications = new Dictionary<string, List<string>>();
-        
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public bool SignIn(string userId, out string reason)
         {
             reason = "";
@@ -46,6 +52,7 @@ namespace ChatServer
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public bool SignOut(string userId, out string reason)
         {
             reason = "";
@@ -61,6 +68,7 @@ namespace ChatServer
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public bool CreateChannel(string channelName)
         {
             for (int i = 0; i < channels.Count; i++)
@@ -78,6 +86,7 @@ namespace ChatServer
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public void JoinChannel(string userId, string channelName)
         {
             Channel targetChannel = null;
@@ -117,6 +126,7 @@ namespace ChatServer
             }
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public bool LeaveChannel(string userId, string channelName)
         { 
             for (int i = 0; i< channels.Count; i++)
@@ -134,7 +144,7 @@ namespace ChatServer
             return false;
         }
 
-        
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public void SendMessage(string channelName, string userId, string message)
         {
             for (int i = 0; i < channels.Count; i++)
@@ -155,6 +165,7 @@ namespace ChatServer
                 new Channel { Name = "Room2" }
         };
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public List<String> GetUsers(string channelName, string userId)
         {
 
@@ -169,6 +180,7 @@ namespace ChatServer
             return new List<string>();
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public List<string> GetMessages(string channelName, string userId)
         {
             for (int i = 0; i < channels.Count; i++)
@@ -198,11 +210,13 @@ namespace ChatServer
             return new List<string>();
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public List<Channel> GetChannels()
         {
             return channels;
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public void SendPrivateMessage(string fromUserId, string toUserId, string message)
         {
             foreach(var privateChannel in privateChannels)
@@ -226,6 +240,7 @@ namespace ChatServer
             privateChannels.Add(newPrivateChannel);
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public List<string> GetPrivateMessages(string userId, string otherUserId)
         {
             foreach(var privateChannel in privateChannels)
@@ -239,6 +254,7 @@ namespace ChatServer
             return new List<string>();
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public void ShareFile(string channelName, string fromUserId, string fileName, byte[] fileData)
         {
             string extension = Path.GetExtension(fileName).ToLower();
@@ -270,6 +286,7 @@ namespace ChatServer
             });
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public List<FileMetaInfo> GetSharedFiles(string channelName)
         {
             if (channelFiles.ContainsKey(channelName))
@@ -279,6 +296,7 @@ namespace ChatServer
             return new List<FileMetaInfo>();
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public byte[] DownloadFile(string channelName, string fileId)
         {
             if(channelFiles.ContainsKey(channelName))
