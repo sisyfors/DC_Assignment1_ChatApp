@@ -20,6 +20,8 @@ namespace ChatServer
         private static readonly string[] allowedExtensions = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".txt" };
         private static Dictionary<string, byte[]> files = new Dictionary<string, byte[]>();
         private static Dictionary<string, List<FileMetaInfo>> channelFiles = new Dictionary<string, List<FileMetaInfo>>();
+
+        private static Dictionary<string, List<string>> privateNotifications = new Dictionary<string, List<string>>();
         
         public bool SignIn(string userId, out string reason)
         {
@@ -117,7 +119,19 @@ namespace ChatServer
 
         public bool LeaveChannel(string userId, string channelName)
         { 
-            return true;
+            for (int i = 0; i< channels.Count; i++)
+            {
+                if (channels[i].Name == channelName)
+                {
+                    int userIndex = channels[i].Users.IndexOf(userId);
+                    if (userIndex != -1)
+                    {
+                        channels[i].Users.RemoveAt(userIndex);
+                        channels[i].JoinIndexes.RemoveAt(userIndex);
+                        return true;
+                    }}
+            }
+            return false;
         }
 
         

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -27,6 +28,9 @@ namespace ChatClient
         private string currentUserId;
         private string currentChannelName;
 
+        private Thread pollingThread;
+        private bool pollingFlag;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -35,6 +39,109 @@ namespace ChatClient
                 new ChannelFactory<IChatService>("ChatServiceEndpoint");
 
             chatService = channelFactory.CreateChannel();
+        }
+
+        private void StartPollingThread()
+        {
+            pollingFlag = true;
+
+            pollingThread = new Thread(PollServer);
+            pollingThread.IsBackground = true;
+
+            pollingThread.Start();
+        }
+
+        private void PollServer()
+        {
+            while(pollingFlag)
+            {
+                if(string.IsNullOrEmpty(currentChannelName))
+                {
+                    var channels = chatService.GetChannels();
+
+                    Dispatcher.Invoke(() =>
+                    {
+
+                        foreach (Channel channel in channels)
+                        {
+                            if(ChannelListBox.Items.Contains(channel.Name))
+                            { 
+                                
+                            }
+                            else
+                            {
+                                ChannelListBox.Items.Add(channel.Name);
+                            }
+                            
+                        }
+                    });
+                }
+                else
+                {
+                    var messages = chatService.GetMessages(currentChannelName, currentUserId);
+                    var users = chatService.GetUsers(currentChannelName, currentUserId);
+                    var files = chatService.GetSharedFiles(currentChannelName);
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        // polling for the messages
+                        MessageListBox.Items.Clear();
+                        foreach (string message in messages)
+                        {
+                            MessageListBox.Items.Add(message);
+                        }
+
+                        // Polling for the users
+                        foreach (string user in users)
+                        {
+                            bool userExists = false;
+
+                            foreach (string currentUser in MemberListBox.Items)
+                            {
+                                if (currentUser == user)
+                                {
+                                    userExists = true;
+                                }
+                            }
+                            if (userExists != true)
+                            {
+                                MemberListBox.Items.Add(user);
+                            }
+                        }
+
+                        for (int i = MemberListBox.Items.Count - 1; i >= 0; i--)
+                        {
+                            string currentUser =
+                                MemberListBox.Items[i].ToString();
+
+                            if (!users.Contains(currentUser))
+                            {
+                                MemberListBox.Items.RemoveAt(i);
+                            }
+                        }
+
+                        // Polling for files
+                        foreach (FileMetaInfo file in files)
+                        {
+                            bool fileExists = false;
+                            foreach(FileMetaInfo currentFile in FilesListBox.Items)
+                            {
+                                if(currentFile.FileId == file.FileId)
+                                {
+                                    fileExists = true;
+                                }
+                            
+                            }
+                            if (fileExists != true)
+                            {
+                                FilesListBox.Items.Add(file);
+                            }
+                        }
+                    });
+
+                }
+                Thread.Sleep(1000);
+            }
         }
 
         private void SignInButton_Click(object sender, RoutedEventArgs e)
@@ -53,6 +160,7 @@ namespace ChatClient
                 ErrorTextBlock.Text = "";
 
                 ShowChannelList();
+                StartPollingThread();
             }
             else
             {
@@ -127,6 +235,14 @@ namespace ChatClient
             {
                 return;
             }
+            pollingFlag = false;
+
+            if (!string.IsNullOrEmpty(currentChannelName))
+            {
+                chatService.LeaveChannel(
+                    currentUserId,
+                    currentChannelName);
+            }
 
             string reason;
 
@@ -136,6 +252,7 @@ namespace ChatClient
             if (success)
             {
                 currentUserId = null;
+                currentChannelName = null;
 
                 ChannelView.Visibility = Visibility.Collapsed;
                 SignInView.Visibility = Visibility.Visible;
@@ -245,9 +362,7 @@ namespace ChatClient
             }
 
             bool success =
-                chatService.LeaveChannel(
-                    currentChannelName,
-                    currentUserId);
+                chatService.LeaveChannel(currentUserId, currentChannelName);
 
             if (success)
             {
