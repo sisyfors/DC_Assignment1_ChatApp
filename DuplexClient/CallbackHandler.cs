@@ -12,10 +12,35 @@ namespace DuplexClient
     public class CallbackHandler : IChatServiceCallback
     {
         private MainWindow mainWindow;
+        private Dictionary<string, PrivateWindow> privateWindows = new Dictionary<string, PrivateWindow>();
         public CallbackHandler(MainWindow mainWindow)
         {
             this.mainWindow = mainWindow;
         }
+
+        public void NewPrivateWindow(string otherUserId, PrivateWindow privateWindow)
+        {
+            privateWindows[otherUserId] = privateWindow;
+        }
+
+        public void ReceivePrivateMessage(string senderId, string recipientId, string message)
+        {
+            mainWindow.Dispatcher.Invoke(new Action(() =>
+            {
+                if (privateWindows.ContainsKey(senderId))
+                {
+                    privateWindows[senderId].PrivateMessageListBox.Items.Add($"{senderId}: {message}");
+                }
+                else
+                {
+                    PrivateWindow newPrivateWindow = new PrivateWindow(senderId, recipientId);
+                    newPrivateWindow.Show();
+                    newPrivateWindow.PrivateMessageListBox.Items.Add($"{senderId}: {message}");
+                    privateWindows[senderId] = newPrivateWindow;
+                }
+            }));
+        }
+
         public void ReceiveMessage(string channelName, string userId, string message)
         {
             mainWindow.Dispatcher.Invoke(new Action(() =>
@@ -24,15 +49,16 @@ namespace DuplexClient
             }));
         }
 
-        public void ReceivePrivateMessage(string fromUserId, string message)
-        {
-            // Handle received private message
-        }
-
         public void ReceiveFile(string channelName, List<FileMetaInfo> updatedFiles)
         {
-            // UP TO HERE
-            // Handle received file
+            mainWindow.Dispatcher.Invoke(new Action(() =>
+            {
+                mainWindow.FilesListBox.Items.Clear();
+                foreach (var file in updatedFiles)
+                {
+                    mainWindow.FilesListBox.Items.Add(file);
+                }
+            }));
         }
 
         public void MemberlistChange(string channelName, List<string> members)

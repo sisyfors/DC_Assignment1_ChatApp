@@ -155,7 +155,7 @@ namespace ChatServer
                 targetChannel.JoinIndexes.Add(targetChannel.Messages.Count);
             }
 
-            var updatedUsers = targetChannel.Users;
+            var updatedUsers = GetUsers(userId, channelName);
 
             foreach(var user in updatedUsers)
             {
@@ -287,11 +287,6 @@ namespace ChatServer
                 Messages = new List<string> { fromUserId + ": " + message }
             };
             privateChannels.Add(newPrivateChannel);
-
-            if(userCallbacks.TryGetValue(toUserId, out var callback))
-            {
-                callback.ReceivePrivateMessage(fromUserId, message);
-            }
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]

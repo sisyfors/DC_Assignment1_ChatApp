@@ -38,7 +38,7 @@ namespace DuplexClient
             DuplexChannelFactory<IChatService> foobFactory;
             NetTcpBinding netTcpBinding = new NetTcpBinding();
             string URL = "net.tcp://localhost:8100/ChatService";
-            foobCallback = new CallbackHandler(this);
+            foobCallback = new CallbackHandler(new MainWindow());
             foobFactory = new DuplexChannelFactory<IChatService>
                 (foobCallback, netTcpBinding, URL);
             chatService = foobFactory.CreateChannel();
