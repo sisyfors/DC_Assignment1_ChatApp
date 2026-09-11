@@ -8,7 +8,7 @@ using System.Runtime.Serialization;
 
 namespace ChatContracts
 {
-    [ServiceContract]
+    [ServiceContract(CallbackContract = typeof(IChatServiceCallback))]
     public interface IChatService
     {
         [OperationContract]

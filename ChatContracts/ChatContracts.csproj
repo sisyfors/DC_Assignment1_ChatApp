@@ -44,7 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Channel.cs" />
-    <Compile Include="Class1.cs" />
+    <Compile Include="IChatServiceCallback.cs" />
     <Compile Include="FileSizeException.cs" />
     <Compile Include="ExtensionException.cs" />
     <Compile Include="IChatService.cs" />

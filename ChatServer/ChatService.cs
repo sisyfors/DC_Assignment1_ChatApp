@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.ServiceModel;
+using System.Net;
 
 namespace ChatServer
 {
@@ -21,6 +22,11 @@ namespace ChatServer
 
         private static readonly HashSet<PrivateChannel> privateChannels =
             new HashSet<PrivateChannel>();
+
+        private static Dictionary<string, IChatServiceCallback> userCallbacks =
+            new Dictionary<string, IChatServiceCallback>();
+
+        private static readonly object callbackLock = new object();
 
         private static readonly string[] allowedExtensions = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".txt" };
         private static Dictionary<string, byte[]> files = new Dictionary<string, byte[]>();
@@ -49,6 +55,13 @@ namespace ChatServer
 
             signedInUsers.Add(userId);
 
+            IChatServiceCallback callback = OperationContext.Current.GetCallbackChannel<IChatServiceCallback>();
+
+            if (!userCallbacks.ContainsKey(userId))
+            {
+                userCallbacks.Add(userId, callback);
+            }
+
             return true;
         }
 
@@ -64,6 +77,11 @@ namespace ChatServer
             }
 
             signedInUsers.Remove(userId);
+
+            if (userCallbacks.ContainsKey(userId))
+            {
+                userCallbacks.Remove(userId);
+            }
 
             return true;
         }
@@ -82,6 +100,18 @@ namespace ChatServer
             Channel newChannel = new Channel();
             newChannel.Name = channelName;
             channels.Add(newChannel);
+
+            foreach(var callback in userCallbacks.Values)
+            {
+                try
+                {
+                    callback.ChannelListChange(channelName);
+                }
+                catch (Exception)
+                {
+                    // Handle or log the exception as needed
+                }
+            }
 
             return true;
         }
@@ -124,6 +154,8 @@ namespace ChatServer
                 targetChannel.Users.Add(userId);
                 targetChannel.JoinIndexes.Add(targetChannel.Messages.Count);
             }
+
+            var updatedUsers = targetChannel.Users;
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
