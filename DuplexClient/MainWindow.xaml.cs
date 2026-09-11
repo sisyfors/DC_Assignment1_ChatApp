@@ -22,8 +22,9 @@ namespace DuplexClient
 {
     public partial class MainWindow : Window
     {
-        private ChannelFactory<IChatService> channelFactory;
         private IChatService chatService;
+
+        private IChatServiceCallback foobCallback;
 
         private string currentUserId;
         private string currentChannelName;
@@ -33,10 +34,13 @@ namespace DuplexClient
         {
             InitializeComponent();
 
-            channelFactory =
-                new ChannelFactory<IChatService>("ChatServiceEndpoint");
-
-            chatService = channelFactory.CreateChannel();
+            DuplexChannelFactory<IChatService> foobFactory;
+            NetTcpBinding netTcpBinding = new NetTcpBinding();
+            string URL = "net.tcp://localhost:8100/ChatService";
+            foobCallback = new CallbackHandler(this);
+            foobFactory = new DuplexChannelFactory<IChatService>
+                (foobCallback, netTcpBinding, URL);
+            chatService = foobFactory.CreateChannel();
         }
 
         public void UpdateMessage(string message)

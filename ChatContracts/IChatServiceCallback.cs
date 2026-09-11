@@ -14,10 +14,10 @@ namespace ChatContracts
         [OperationContract(IsOneWay = true)]
         void ReceivePrivateMessage(string fromUserId, string message);
         [OperationContract(IsOneWay = true)]
-        void ReceiveFile(string channelName, string fromUserId, string fileName, byte[] fileData);
+        void ReceiveFile(string channelName, List<FileMetaInfo> updatedFiles);
 
         [OperationContract(IsOneWay = true)]
-        void MemberlistChange(string channelName, string userId);
+        void MemberlistChange(string channelName, List<string> members);
 
         [OperationContract(IsOneWay = true)]
         void ChannelListChange(string channelName);

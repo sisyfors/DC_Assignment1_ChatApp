@@ -5,14 +5,23 @@ using System.Linq;
 using System.ServiceModel;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace DuplexClient
 {
     public class CallbackHandler : IChatServiceCallback
     {
+        private MainWindow mainWindow;
+        public CallbackHandler(MainWindow mainWindow)
+        {
+            this.mainWindow = mainWindow;
+        }
         public void ReceiveMessage(string channelName, string userId, string message)
         {
-            // Handle received message
+            mainWindow.Dispatcher.Invoke(new Action(() =>
+            {
+                mainWindow.MessageListBox.Items.Add($"{userId}: {message}");
+            }));
         }
 
         public void ReceivePrivateMessage(string fromUserId, string message)
@@ -20,19 +29,30 @@ namespace DuplexClient
             // Handle received private message
         }
 
-        public void ReceiveFile(string channelName, string fromUserId, string fileName, byte[] fileData)
+        public void ReceiveFile(string channelName, List<FileMetaInfo> updatedFiles)
         {
+            // UP TO HERE
             // Handle received file
         }
 
-        public void MemberlistChange(string channelName, string userId)
+        public void MemberlistChange(string channelName, List<string> members)
         {
-            // Handle member list change
+            mainWindow.Dispatcher.Invoke(new Action(() =>
+            {
+                mainWindow.MemberListBox.Items.Clear();
+                foreach (string member in members)
+                {
+                     mainWindow.MemberListBox.Items.Add(member);
+                }
+            }));
         }
 
         public void ChannelListChange(string channelName)
         {
-            // Handle channel list change
+            mainWindow.Dispatcher.Invoke(new Action(() =>
+            {
+                mainWindow.ChannelListBox.Items.Add(channelName);
+            }));
         }
     }
 }

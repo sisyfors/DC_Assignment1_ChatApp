@@ -156,11 +156,19 @@ namespace ChatServer
             }
 
             var updatedUsers = targetChannel.Users;
+
+            foreach(var user in updatedUsers)
+            {
+                if (userCallbacks.TryGetValue(user, out var callback))
+                {
+                    callback.MemberlistChange(channelName, updatedUsers);
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
         public bool LeaveChannel(string userId, string channelName)
-        { 
+        {
             for (int i = 0; i< channels.Count; i++)
             {
                 if (channels[i].Name == channelName)
@@ -185,6 +193,15 @@ namespace ChatServer
                 {
                     string chatMessage = userId + ": " + message;
                     channels[i].Messages.Add(chatMessage);
+
+                    foreach(var user in channels[i].Users)
+                    {
+                        if (userCallbacks.TryGetValue(user, out var callback))
+                        {
+                            callback.ReceiveMessage(channelName, userId, message);
+                        }
+                    }
+
                     return;
                 }
             }
@@ -270,6 +287,11 @@ namespace ChatServer
                 Messages = new List<string> { fromUserId + ": " + message }
             };
             privateChannels.Add(newPrivateChannel);
+
+            if(userCallbacks.TryGetValue(toUserId, out var callback))
+            {
+                callback.ReceivePrivateMessage(fromUserId, message);
+            }
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -316,6 +338,17 @@ namespace ChatServer
                 Filename = fileName,
                 Sender = fromUserId
             });
+
+            var updatedFiles = GetSharedFiles(channelName);
+            var members = GetUsers(channelName, fromUserId);
+
+            foreach (var member in members)
+            {
+                if(userCallbacks.TryGetValue(member, out var callback))
+                {
+                    callback.ReceiveFile(channelName, updatedFiles);
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]

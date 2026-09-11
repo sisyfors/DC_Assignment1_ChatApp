@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.ServiceModel;
+using ChatContracts;
 
 namespace ChatServer
 {
@@ -11,7 +12,18 @@ namespace ChatServer
     {
         static void Main(string[] args)
         {
-            ServiceHost host = new ServiceHost(typeof(ChatService));
+            ServiceHost host;
+            //This represents a tcp/ip binding in the Windows network stack
+            NetTcpBinding tcp = new NetTcpBinding();
+            //Bind server to the implementation of DataServer
+            host = new ServiceHost(typeof(ChatService));
+            /*Present the publicly accessible interface to the client. 0.0.0.0 tells .net to
+            accept on any interface. :8100 means this will use port 8100. DataService is a name for the
+            actual service, this can be any string.*/
+
+            host.AddServiceEndpoint(typeof(IChatService), tcp, "net.tcp://0.0.0.0:8100/ChatService");
+            //And open the host for business!
+
 
             host.Open();
 
