@@ -23,7 +23,7 @@
 
         <Grid Grid.Row="1">
 
-            <!-- Sign In View -->
+            <!-- Sign in block -->
 
             <StackPanel
                 x:Name="SignInView">
@@ -58,7 +58,7 @@
 
             </StackPanel>
 
-            <!-- Channel List View -->
+            <!-- Channel list view block -->
 
 
             <StackPanel
@@ -83,8 +83,6 @@
                     HorizontalAlignment="Center"
                     Click="JoinChannelButton_Click"/>
 
-
-                <!-- CREATE CHANNEL -->
 
                 <TextBlock
                     Text="Create Channel"
@@ -120,8 +118,8 @@
 
             </StackPanel>
 
-
-            <!-- CHAT VIEW -->
+            <!-- chat view block-->
+            
             <Grid
                 x:Name="ChatView" Visibility="Collapsed">
 
@@ -131,9 +129,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-
-
-                <!-- CHANNEL TITLE -->
 
                 <TextBlock
                     x:Name="CurrentChannelTextBlock"
@@ -151,16 +146,10 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-
-                    <!-- MESSAGES -->
-
                     <ListBox
                         x:Name="MessageListBox"
                         Grid.Column="0"
                         Margin="0,0,10,0"/>
-
-
-                    <!-- MEMBERS AND FILES -->
 
                     <StackPanel
                         Grid.Column="1">
@@ -184,9 +173,6 @@
                     </StackPanel>
 
                 </Grid>
-
-
-                <!-- MESSAGE INPUT -->
 
                 <Grid
                     Grid.Row="2"
@@ -212,9 +198,6 @@
 
                 </Grid>
 
-
-                <!-- CHANNEL CONTROLS -->
-
                 <StackPanel
                     Grid.Row="3"
                     Orientation="Horizontal"
@@ -235,8 +218,6 @@
                         Click="SignOutButton_Click"/>
 
                 </StackPanel>
-
-                <!-- FILE UPLOAD/DOWNLOAD -->
 
                 <StackPanel Grid.Row="3" Margin="570,0,0,-17">
                     <Button x:Name="UploadButton" Content="Upload" Height="27" Width="91" Click="UploadButton_Click" Margin="0,13,0,0"/>

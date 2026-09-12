@@ -22,6 +22,8 @@ namespace ChatServer
             actual service, this can be any string.*/
 
             host.AddServiceEndpoint(typeof(IChatService), tcp, "net.tcp://0.0.0.0:8100/ChatService");
+
+            host.AddServiceEndpoint(typeof(IDuplexChatService), tcp, "net.tcp://0.0.0.0:8100/DuplexChatService");
             //And open the host for business!
 
 

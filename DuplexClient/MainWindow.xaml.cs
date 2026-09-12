@@ -22,7 +22,7 @@ namespace DuplexClient
 {
     public partial class MainWindow : Window
     {
-        internal IChatService chatService;
+        internal IDuplexChatService chatService;
 
         private IChatServiceCallback foobCallback;
 
@@ -36,13 +36,31 @@ namespace DuplexClient
         {
             InitializeComponent();
 
-            DuplexChannelFactory<IChatService> foobFactory;
+            DuplexChannelFactory<IDuplexChatService> foobFactory;
             NetTcpBinding netTcpBinding = new NetTcpBinding();
-            string URL = "net.tcp://localhost:8100/ChatService";
+            string URL = "net.tcp://localhost:8100/DuplexChatService";
             foobCallback = new CallbackHandler(this);
-            foobFactory = new DuplexChannelFactory<IChatService>
-                (foobCallback, netTcpBinding, URL);
+            foobFactory = new DuplexChannelFactory<IDuplexChatService>(foobCallback, netTcpBinding, URL);
+
             chatService = foobFactory.CreateChannel();
+
+            Closing += CloseWindow;
+        }
+
+        private void CloseWindow(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                try
+                {
+                    string reason;
+                    chatService.SignOut(currentUserId, out reason);
+                }
+                catch (Exception)
+                {
+                    
+                }
+            }
         }
 
         private void NewPrivateWindow(string otherUserId, PrivateWindow privateWindow)
@@ -131,6 +149,12 @@ namespace DuplexClient
                     string localReason;
                     bool localSuccess = chatService.SignIn(userId, out localReason);
 
+
+                    if (localSuccess)
+                    {
+                        chatService.RegisterCallback(userId);
+                    }
+
                     reason = localReason;
 
                     return localSuccess;
@@ -162,7 +186,16 @@ namespace DuplexClient
         private async void ShowChannelList()
         {
             SignInView.Visibility = Visibility.Collapsed;
+            SignInView.IsEnabled = false;
+            SignInView.IsHitTestVisible = false;
+
+            ChatView.Visibility = Visibility.Collapsed;
+            ChatView.IsEnabled = false;
+            ChatView.IsHitTestVisible = false;
+
             ChannelView.Visibility = Visibility.Visible;
+            ChannelView.IsEnabled = true;
+            ChannelView.IsHitTestVisible = true;
 
             await LoadChannels();
         }
@@ -217,11 +250,13 @@ namespace DuplexClient
 
             currentChannelName = channelName;
 
-            ChannelView.Visibility =
-                Visibility.Collapsed;
+            ChannelView.Visibility = Visibility.Collapsed;
+            ChannelView.IsEnabled = false;
+            ChannelView.IsHitTestVisible = false;
 
-            ChatView.Visibility =
-                Visibility.Visible;
+            ChatView.Visibility = Visibility.Visible;
+            ChatView.IsEnabled = true;
+            ChatView.IsHitTestVisible = true;
 
             CurrentChannelTextBlock.Text =
                 channelName;
@@ -245,6 +280,7 @@ namespace DuplexClient
                 try
                 {
                     await Task.Run(() => chatService.LeaveChannel(currentUserId, currentChannelName));
+
                 }
                 catch (Exception ex)
                 {
@@ -277,10 +313,24 @@ namespace DuplexClient
                 currentUserId = null;
                 currentChannelName = null;
 
+                ChatView.Visibility = Visibility.Collapsed;
+                ChatView.IsEnabled = false;
+                ChatView.IsHitTestVisible = false;
+
                 ChannelView.Visibility = Visibility.Collapsed;
+                ChannelView.IsEnabled = false;
+                ChannelView.IsHitTestVisible = false;
+
                 SignInView.Visibility = Visibility.Visible;
+                SignInView.IsEnabled = true;
+                SignInView.IsHitTestVisible = true;
+
+                MessageListBox.Items.Clear();
+                MemberListBox.Items.Clear();
+                FilesListBox.Items.Clear();
 
                 UserIdTextBox.Clear();
+                UserIdTextBox.Focus();
             }
             else
             {
@@ -398,11 +448,13 @@ namespace DuplexClient
             {
                 currentChannelName = null;
 
-                ChatView.Visibility =
-                    Visibility.Collapsed;
+                ChatView.Visibility = Visibility.Collapsed;
+                ChatView.IsEnabled = false;
+                ChatView.IsHitTestVisible = false;
 
-                ChannelView.Visibility =
-                    Visibility.Visible;
+                ChannelView.Visibility = Visibility.Visible;
+                ChannelView.IsEnabled = true;
+                ChannelView.IsHitTestVisible = true;
 
                 MessageListBox.Items.Clear();
                 MemberListBox.Items.Clear();

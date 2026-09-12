@@ -48,6 +48,7 @@
     <Compile Include="FileSizeException.cs" />
     <Compile Include="ExtensionException.cs" />
     <Compile Include="IChatService.cs" />
+    <Compile Include="IDuplexChatService.cs" />
     <Compile Include="PrivateChannel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
