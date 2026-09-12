@@ -296,8 +296,13 @@ namespace ChatClient
                 currentUserId = null;
                 currentChannelName = null;
 
+                ChatView.Visibility = Visibility.Collapsed;
                 ChannelView.Visibility = Visibility.Collapsed;
                 SignInView.Visibility = Visibility.Visible;
+
+                MessageListBox.Items.Clear();
+                MemberListBox.Items.Clear();
+                FilesListBox.Items.Clear();
 
                 UserIdTextBox.Clear();
             }
