@@ -44,20 +44,16 @@ namespace ChatClient
             InitializeComponent();
 
             channelFactory =
-                new ChannelFactory<IChatService>(
-                    "ChatServiceEndpoint");
+                new ChannelFactory<IChatService>("ChatServiceEndpoint");
 
             chatService =
                 channelFactory.CreateChannel();
 
-            this.currentUserId =
-                currentUserId;
+            this.currentUserId =currentUserId;
 
-            this.recipientId =
-                recipientId;
+            this.recipientId =recipientId;
 
-            PrivateTextBlock.Text =
-                $"Private chat with {recipientId}";
+            PrivateTextBlock.Text =$"Private chat with {recipientId}";
 
             LoadPrivateMessages();
 
@@ -82,10 +78,7 @@ namespace ChatClient
             {
                 try
                 {
-                    List<string> messages =
-                        chatService.GetPrivateMessages(
-                            currentUserId,
-                            recipientId);
+                    List<string> messages =chatService.GetPrivateMessages(currentUserId,recipientId);
 
                     Dispatcher.Invoke(() =>
                     {
@@ -93,15 +86,12 @@ namespace ChatClient
 
                         foreach (string message in messages)
                         {
-                            PrivateMessageListBox.Items.Add(
-                                message);
+                            PrivateMessageListBox.Items.Add(message);
                         }
 
                         if (PrivateMessageListBox.Items.Count > 0)
                         {
-                            PrivateMessageListBox.ScrollIntoView(
-                                PrivateMessageListBox.Items[
-                                    PrivateMessageListBox.Items.Count - 1]);
+                            PrivateMessageListBox.ScrollIntoView(PrivateMessageListBox.Items[PrivateMessageListBox.Items.Count - 1]);
                         }
                     });
                 }
@@ -120,16 +110,12 @@ namespace ChatClient
             PrivateMessageListBox.Items.Clear();
 
             List<string> messages =
-                chatService.GetPrivateMessages(
-                    currentUserId,
-                    recipientId);
+                chatService.GetPrivateMessages(currentUserId,recipientId);
 
             for (int i = 0;
-                 i < messages.Count;
-                 i++)
+                 i < messages.Count;i++)
             {
-                PrivateMessageListBox.Items.Add(
-                    messages[i]);
+                PrivateMessageListBox.Items.Add(messages[i]);
             }
         }
 
@@ -137,33 +123,26 @@ namespace ChatClient
             object sender,
             RoutedEventArgs e)
         {
-            string message =
-                PrivateMessageTextBox.Text.Trim();
+            string message =PrivateMessageTextBox.Text.Trim();
 
             if (string.IsNullOrWhiteSpace(message))
             {
                 return;
             }
 
-            chatService.SendPrivateMessage(
-                currentUserId,
-                recipientId,
-                message);
+            chatService.SendPrivateMessage(currentUserId,recipientId,message);
 
             PrivateMessageTextBox.Clear();
 
             LoadPrivateMessages();
         }
 
-        private void CloseButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void CloseButton_Click(object sender,RoutedEventArgs e)
         {
             Close();
         }
 
-        protected override void OnClosed(
-            EventArgs e)
+        protected override void OnClosed(EventArgs e)
         {
             pollingFlag = false;
 

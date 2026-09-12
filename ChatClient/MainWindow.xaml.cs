@@ -70,8 +70,7 @@ namespace ChatClient
                 }
 
                 List<string> notifications =
-                    chatService.GetPrivateNotifications(
-                        currentUserId);
+                    chatService.GetPrivateNotifications(currentUserId);
 
                 foreach (string senderId in notifications)
                 {
@@ -86,18 +85,14 @@ namespace ChatClient
                             }
                         }
 
-                        PrivateWindow privateWindow =
-                            new PrivateWindow(
-                                currentUserId,
-                                senderId);
+                        PrivateWindow privateWindow = new PrivateWindow(currentUserId,senderId);
 
                         privateWindows.Add(privateWindow);
 
                         privateWindow.Closed +=
                             (sender, e) =>
                             {
-                                privateWindows.Remove(
-                                    privateWindow);
+                                privateWindows.Remove(privateWindow);
                             };
 
                         privateWindow.Show();
@@ -127,10 +122,7 @@ namespace ChatClient
                             { 
                                 
                             }
-                            else
-                            {
-                                ChannelListBox.Items.Add(channel.Name);
-                            }
+                            else{ChannelListBox.Items.Add(channel.Name);}
                             
                         }
                     });
@@ -251,15 +243,11 @@ namespace ChatClient
             }
         }
 
-        private void JoinChannelButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void JoinChannelButton_Click(object sender,RoutedEventArgs e)
         {
             if (ChannelListBox.SelectedItem == null)
             {
-                MessageBox.Show(
-                    "Please select a channel.",
-                    "Join Channel");
+                MessageBox.Show("Please select a channel.","Join Channel");
 
                 return;
             }
@@ -267,9 +255,7 @@ namespace ChatClient
             string channelName =
                 ChannelListBox.SelectedItem.ToString();
 
-            chatService.JoinChannel(
-                currentUserId,
-                channelName);
+            chatService.JoinChannel(currentUserId,channelName);
 
             currentChannelName = channelName;
 
@@ -279,8 +265,7 @@ namespace ChatClient
             ChatView.Visibility =
                 Visibility.Visible;
 
-            CurrentChannelTextBlock.Text =
-                channelName;
+            CurrentChannelTextBlock.Text =channelName;
 
             MessageListBox.Items.Clear();
 
@@ -299,9 +284,7 @@ namespace ChatClient
 
             if (!string.IsNullOrEmpty(currentChannelName))
             {
-                chatService.LeaveChannel(
-                    currentUserId,
-                    currentChannelName);
+                chatService.LeaveChannel(currentUserId,currentChannelName);
             }
 
             string reason;
@@ -321,9 +304,7 @@ namespace ChatClient
             }
             else
             {
-                MessageBox.Show(
-                    reason,
-                    "Sign Out");
+                MessageBox.Show(reason,"Sign Out");
             }
         }
 
@@ -336,8 +317,7 @@ namespace ChatClient
 
             if (string.IsNullOrWhiteSpace(channelName))
             {
-                ChannelErrorTextBlock.Text =
-                    "Channel name cannot be empty.";
+                ChannelErrorTextBlock.Text ="Channel name cannot be empty.";
 
                 return;
             }
@@ -355,8 +335,7 @@ namespace ChatClient
             }
             else
             {
-                ChannelErrorTextBlock.Text =
-                    "A channel with that name already exists.";
+                ChannelErrorTextBlock.Text ="A channel with that name already exists.";
             }
         }
 
@@ -374,10 +353,7 @@ namespace ChatClient
                     return;
                 }
 
-                chatService.SendMessage(
-                    currentChannelName,
-                    currentUserId,
-                    message);
+                chatService.SendMessage(currentChannelName,currentUserId,message);
 
                 MessageTextBox.Clear();
 
@@ -396,10 +372,7 @@ namespace ChatClient
                 string recipientUserId =
                     MemberListBox.SelectedItem.ToString();
 
-                chatService.SendPrivateMessage(
-                    currentUserId,
-                    recipientUserId,
-                    message);
+                chatService.SendPrivateMessage(currentUserId,recipientUserId,message);
 
                 MessageTextBox.Clear();
 
@@ -420,10 +393,7 @@ namespace ChatClient
                 }
                 else
                 {
-                    PrivateWindow privateWindow =
-                        new PrivateWindow(
-                            currentUserId,
-                            recipientUserId);
+                    PrivateWindow privateWindow =new PrivateWindow(currentUserId,recipientUserId);
 
                     privateWindows.Add(privateWindow);
 
@@ -447,18 +417,15 @@ namespace ChatClient
                 return;
             }
 
-            bool success =
-                chatService.LeaveChannel(currentUserId, currentChannelName);
+            bool success =chatService.LeaveChannel(currentUserId, currentChannelName);
 
             if (success)
             {
                 currentChannelName = null;
 
-                ChatView.Visibility =
-                    Visibility.Collapsed;
+                ChatView.Visibility =Visibility.Collapsed;
 
-                ChannelView.Visibility =
-                    Visibility.Visible;
+                ChannelView.Visibility =Visibility.Visible;
 
                 MessageListBox.Items.Clear();
                 MemberListBox.Items.Clear();
@@ -468,9 +435,7 @@ namespace ChatClient
             }
             else
             {
-                MessageBox.Show(
-                    "Unable to leave channel.",
-                    "Leave Channel");
+                MessageBox.Show("Unable to leave channel.","Leave Channel");
             }
         }
 
@@ -479,23 +444,8 @@ namespace ChatClient
             MessageListBox.Items.Clear();
 
             List<string> messages =
-                chatService.GetMessages(
-                    currentChannelName,
-                    currentUserId);
+                chatService.GetMessages(currentChannelName,currentUserId);
 
-            for (int i = 0; i < messages.Count; i++)
-            {
-                MessageListBox.Items.Add(messages[i]);
-            }
-        }
-
-        private void LoadPrivateMessages(string otherUserId)
-        {
-            MessageListBox.Items.Clear();
-            List<string> messages =
-                chatService.GetPrivateMessages(
-                    currentUserId,
-                    otherUserId);
             for (int i = 0; i < messages.Count; i++)
             {
                 MessageListBox.Items.Add(messages[i]);

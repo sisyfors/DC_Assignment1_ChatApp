@@ -7,8 +7,8 @@
     mc:Ignorable="av"
     x:Class="ChatClient.MainWindow"
     Title="Chat System"
-    Height="680"
-    Width="720">
+    Height="700"
+    Width="800">
 
     <Window.Resources>
         <local:MemberColorConverter x:Key="MemberColorConverter"/>
