@@ -425,6 +425,16 @@ namespace ChatServer
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
+        public List<string> GetPrivateNotifications(string userId)
+        {
+            if (privateNotifications.ContainsKey(userId))
+            {
+                return privateNotifications[userId].ToList();
+            }
+            return new List<string>();
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public void ShareFile(string channelName, string fromUserId, string fileName, byte[] fileData)
         {
             string extension = Path.GetExtension(fileName).ToLower();
