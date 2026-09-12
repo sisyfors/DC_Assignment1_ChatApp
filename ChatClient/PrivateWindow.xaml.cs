@@ -1,7 +1,11 @@
-﻿using System;
+﻿using ChatContracts;
+using ChatServer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.ServiceModel;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,17 +15,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using System.ServiceModel;
-using ChatContracts;
-using ChatServer;
 
 namespace ChatClient
 {
-    /// <summary>
-    /// Interaction logic for PrivateWindow.xaml
-    /// </summary>
-    /// 
-
     public partial class PrivateWindow : Window
     {
         private ChannelFactory<IChatService> channelFactory;
@@ -30,37 +26,116 @@ namespace ChatClient
         private string currentUserId;
         private string recipientId;
 
-        public PrivateWindow(string currentUserId, string recipientId)
+        private Thread pollingThread;
+        private bool pollingFlag;
+
+        public string OtherUserId
+        {
+            get
+            {
+                return recipientId;
+            }
+        }
+
+        public PrivateWindow(
+            string currentUserId,
+            string recipientId)
         {
             InitializeComponent();
 
             channelFactory =
-                new ChannelFactory<IChatService>("ChatServiceEndpoint");
+                new ChannelFactory<IChatService>(
+                    "ChatServiceEndpoint");
 
-            chatService = channelFactory.CreateChannel();
+            chatService =
+                channelFactory.CreateChannel();
 
-            PrivateTextBlock.Text = $"Private chat with {recipientId}";
+            this.currentUserId =
+                currentUserId;
 
-            this.currentUserId = currentUserId;
-            this.recipientId = recipientId;
+            this.recipientId =
+                recipientId;
+
+            PrivateTextBlock.Text =
+                $"Private chat with {recipientId}";
 
             LoadPrivateMessages();
+
+            StartPolling();
+        }
+
+        private void StartPolling()
+        {
+            pollingFlag = true;
+
+            pollingThread =
+                new Thread(PollMessages);
+
+            pollingThread.IsBackground = true;
+
+            pollingThread.Start();
+        }
+
+        private void PollMessages()
+        {
+            while (pollingFlag)
+            {
+                try
+                {
+                    List<string> messages =
+                        chatService.GetPrivateMessages(
+                            currentUserId,
+                            recipientId);
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        PrivateMessageListBox.Items.Clear();
+
+                        foreach (string message in messages)
+                        {
+                            PrivateMessageListBox.Items.Add(
+                                message);
+                        }
+
+                        if (PrivateMessageListBox.Items.Count > 0)
+                        {
+                            PrivateMessageListBox.ScrollIntoView(
+                                PrivateMessageListBox.Items[
+                                    PrivateMessageListBox.Items.Count - 1]);
+                        }
+                    });
+                }
+                catch
+                {
+                    // The window is closing or the server
+                    // is temporarily unavailable.
+                }
+
+                Thread.Sleep(1000);
+            }
         }
 
         private void LoadPrivateMessages()
         {
             PrivateMessageListBox.Items.Clear();
+
             List<string> messages =
                 chatService.GetPrivateMessages(
                     currentUserId,
                     recipientId);
-            for (int i = 0; i < messages.Count; i++)
+
+            for (int i = 0;
+                 i < messages.Count;
+                 i++)
             {
-                PrivateMessageListBox.Items.Add(messages[i]);
+                PrivateMessageListBox.Items.Add(
+                    messages[i]);
             }
         }
 
-        private void SendButton_Click(object sender, RoutedEventArgs e)
+        private void SendButton_Click(
+            object sender,
+            RoutedEventArgs e)
         {
             string message =
                 PrivateMessageTextBox.Text.Trim();
@@ -80,9 +155,19 @@ namespace ChatClient
             LoadPrivateMessages();
         }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        private void CloseButton_Click(
+            object sender,
+            RoutedEventArgs e)
         {
-            this.Close();
+            Close();
+        }
+
+        protected override void OnClosed(
+            EventArgs e)
+        {
+            pollingFlag = false;
+
+            base.OnClosed(e);
         }
     }
 }

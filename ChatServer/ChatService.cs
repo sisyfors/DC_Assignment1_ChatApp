@@ -203,27 +203,80 @@ namespace ChatServer
             return channels;
         }
 
-        public void SendPrivateMessage(string fromUserId, string toUserId, string message)
+        public void SendPrivateMessage(
+            string fromUserId,
+            string toUserId,
+            string message)
         {
-            foreach(var privateChannel in privateChannels)
+            foreach (var privateChannel in privateChannels)
             {
-                if ((privateChannel.Sender == fromUserId && privateChannel.Recipient == toUserId) ||
-                    (privateChannel.Sender == toUserId && privateChannel.Recipient == fromUserId))
+                if ((privateChannel.Sender == fromUserId &&
+                     privateChannel.Recipient == toUserId) ||
+                    (privateChannel.Sender == toUserId &&
+                     privateChannel.Recipient == fromUserId))
                 {
-                    string chatMessage = fromUserId + ": " + message;
+                    string chatMessage =
+                        fromUserId + ": " + message;
+
                     privateChannel.Messages.Add(chatMessage);
+
+                    AddPrivateNotification(
+                        toUserId,
+                        fromUserId);
+
                     return;
                 }
-                                 
             }
 
-            PrivateChannel newPrivateChannel = new PrivateChannel
-            {
-                Sender = fromUserId,
-                Recipient = toUserId,
-                Messages = new List<string> { fromUserId + ": " + message }
-            };
+            PrivateChannel newPrivateChannel =
+                new PrivateChannel
+                {
+                    Sender = fromUserId,
+                    Recipient = toUserId,
+                    Messages = new List<string>
+                    {
+                fromUserId + ": " + message
+                    }
+                };
+
             privateChannels.Add(newPrivateChannel);
+
+            AddPrivateNotification(
+                toUserId,
+                fromUserId);
+        }
+
+        private void AddPrivateNotification(
+            string userId,
+            string fromUserId)
+        {
+            if (!privateNotifications.ContainsKey(userId))
+            {
+                privateNotifications[userId] =
+                    new List<string>();
+            }
+
+            if (!privateNotifications[userId].Contains(fromUserId))
+            {
+                privateNotifications[userId].Add(fromUserId);
+            }
+        }
+
+        public List<string> GetPrivateNotifications(
+            string userId)
+        {
+            if (!privateNotifications.ContainsKey(userId))
+            {
+                return new List<string>();
+            }
+
+            List<string> notifications =
+                new List<string>(
+                    privateNotifications[userId]);
+
+            privateNotifications[userId].Clear();
+
+            return notifications;
         }
 
         public List<string> GetPrivateMessages(string userId, string otherUserId)
@@ -238,6 +291,7 @@ namespace ChatServer
             }
             return new List<string>();
         }
+
 
         public void ShareFile(string channelName, string fromUserId, string fileName, byte[] fileData)
         {

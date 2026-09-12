@@ -74,6 +74,7 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MemberColorConverter.cs" />
     <Compile Include="PrivateWindow.xaml.cs">
       <DependentUpon>PrivateWindow.xaml</DependentUpon>
     </Compile>

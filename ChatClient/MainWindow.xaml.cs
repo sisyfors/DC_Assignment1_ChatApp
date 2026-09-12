@@ -26,14 +26,23 @@ namespace ChatClient
         private IChatService chatService;
 
         private string currentUserId;
+
+        public string CurrentUserId
+        {
+            get { return currentUserId; }
+        }
         private string currentChannelName;
 
         private Thread pollingThread;
         private bool pollingFlag;
 
+        private List<PrivateWindow> privateWindows = new List<PrivateWindow>();
+
         public MainWindow()
         {
             InitializeComponent();
+
+            DataContext = this;
 
             channelFactory =
                 new ChannelFactory<IChatService>("ChatServiceEndpoint");
@@ -49,6 +58,56 @@ namespace ChatClient
             pollingThread.IsBackground = true;
 
             pollingThread.Start();
+        }
+
+        private void CheckPrivateNotifications()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return;
+                }
+
+                List<string> notifications =
+                    chatService.GetPrivateNotifications(
+                        currentUserId);
+
+                foreach (string senderId in notifications)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        foreach (PrivateWindow window in privateWindows)
+                        {
+                            if (window.OtherUserId == senderId)
+                            {
+                                window.Activate();
+                                return;
+                            }
+                        }
+
+                        PrivateWindow privateWindow =
+                            new PrivateWindow(
+                                currentUserId,
+                                senderId);
+
+                        privateWindows.Add(privateWindow);
+
+                        privateWindow.Closed +=
+                            (sender, e) =>
+                            {
+                                privateWindows.Remove(
+                                    privateWindow);
+                            };
+
+                        privateWindow.Show();
+                    });
+                }
+            }
+            catch
+            {
+                // Ignore temporary server/polling errors.
+            }
         }
 
         private void PollServer()
@@ -140,6 +199,7 @@ namespace ChatClient
                     });
 
                 }
+                CheckPrivateNotifications();
                 Thread.Sleep(1000);
             }
         }
@@ -343,12 +403,38 @@ namespace ChatClient
 
                 MessageTextBox.Clear();
 
-                PrivateWindow privateWindow =
-                    new PrivateWindow(currentUserId, recipientUserId);
+                PrivateWindow existingWindow = null;
 
-                privateWindow.Show();
+                foreach (PrivateWindow window in privateWindows)
+                {
+                    if (window.OtherUserId == recipientUserId)
+                    {
+                        existingWindow = window;
+                        break;
+                    }
+                }
 
-                LoadPrivateMessages(recipientUserId);
+                if (existingWindow != null)
+                {
+                    existingWindow.Activate();
+                }
+                else
+                {
+                    PrivateWindow privateWindow =
+                        new PrivateWindow(
+                            currentUserId,
+                            recipientUserId);
+
+                    privateWindows.Add(privateWindow);
+
+                    privateWindow.Closed +=
+                        (closedSender, closedEvent) =>
+                        {
+                            privateWindows.Remove(privateWindow);
+                        };
+
+                    privateWindow.Show();
+                }
             }
         }
 

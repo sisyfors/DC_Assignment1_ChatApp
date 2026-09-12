@@ -43,6 +43,8 @@ namespace ChatContracts
 
         [OperationContract]
         List<string> GetPrivateMessages(string userId, string otherUserId);
+        [OperationContract]
+        List<string> GetPrivateNotifications(string userId);
 
         [OperationContract]
         void ShareFile(string channelName, string fromUserId, string fileName, byte[] fileData);
