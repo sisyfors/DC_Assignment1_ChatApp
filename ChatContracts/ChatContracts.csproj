@@ -44,10 +44,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Channel.cs" />
-    <Compile Include="Class1.cs" />
+    <Compile Include="IChatServiceCallback.cs" />
     <Compile Include="FileSizeException.cs" />
     <Compile Include="ExtensionException.cs" />
     <Compile Include="IChatService.cs" />
+    <Compile Include="IDuplexChatService.cs" />
     <Compile Include="PrivateChannel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

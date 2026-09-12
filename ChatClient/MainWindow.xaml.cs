@@ -22,7 +22,6 @@ namespace ChatClient
 {
     public partial class MainWindow : Window
     {
-        private ChannelFactory<IChatService> channelFactory;
         private IChatService chatService;
 
         private string currentUserId;
@@ -42,12 +41,12 @@ namespace ChatClient
         {
             InitializeComponent();
 
-            DataContext = this;
+            ChannelFactory<IChatService> foobFactory;
+            NetTcpBinding tcp = new NetTcpBinding();
 
-            channelFactory =
-                new ChannelFactory<IChatService>("ChatServiceEndpoint");
-
-            chatService = channelFactory.CreateChannel();
+            string URL = "net.tcp://localhost:8100/ChatService";
+            foobFactory = new ChannelFactory<IChatService>(tcp, URL);
+            chatService = foobFactory.CreateChannel();
         }
 
         private void StartPollingThread()
