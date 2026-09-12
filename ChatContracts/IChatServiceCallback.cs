@@ -16,6 +16,9 @@ namespace ChatContracts
         void ReceiveFile(string channelName, List<FileMetaInfo> updatedFiles);
 
         [OperationContract(IsOneWay = true)]
+        void ReceivePrivateMessage(string senderId, string recipientId, string message);
+
+        [OperationContract(IsOneWay = true)]
         void MemberlistChange(string channelName, List<string> members);
 
         [OperationContract(IsOneWay = true)]

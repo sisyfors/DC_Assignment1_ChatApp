@@ -47,19 +47,22 @@ namespace ChatServer
 
             userId = userId.Trim();
 
-            if (signedInUsers.Contains(userId))
+            lock (callbackLock)
             {
-                reason = "User ID '" + userId + "' is already signed in.";
-                return false;
-            }
+                if (signedInUsers.Contains(userId))
+                {
+                    reason = "User ID '" + userId + "' is already signed in.";
+                    return false;
+                }
 
-            signedInUsers.Add(userId);
+                signedInUsers.Add(userId);
 
-            IChatServiceCallback callback = OperationContext.Current.GetCallbackChannel<IChatServiceCallback>();
+                IChatServiceCallback callback = OperationContext.Current.GetCallbackChannel<IChatServiceCallback>();
 
-            if (!userCallbacks.ContainsKey(userId))
-            {
-                userCallbacks.Add(userId, callback);
+                if (!userCallbacks.ContainsKey(userId))
+                {
+                    userCallbacks.Add(userId, callback);
+                }
             }
 
             return true;
@@ -70,17 +73,21 @@ namespace ChatServer
         {
             reason = "";
 
-            if (!signedInUsers.Contains(userId))
+            lock (callbackLock)
             {
-                reason = "User is not currently signed in.";
-                return false;
-            }
 
-            signedInUsers.Remove(userId);
+                if (!signedInUsers.Contains(userId))
+                {
+                    reason = "User is not currently signed in.";
+                    return false;
+                }
 
-            if (userCallbacks.ContainsKey(userId))
-            {
-                userCallbacks.Remove(userId);
+                signedInUsers.Remove(userId);
+
+                if (userCallbacks.ContainsKey(userId))
+                {
+                    userCallbacks.Remove(userId);
+                }
             }
 
             return true;
@@ -89,27 +96,33 @@ namespace ChatServer
         [MethodImpl(MethodImplOptions.Synchronized)]
         public bool CreateChannel(string channelName)
         {
-            for (int i = 0; i < channels.Count; i++)
+            lock (callbackLock)
             {
-                if (channels[i].Name == channelName)
-                {
-                    return false;
-                }
-            }
 
-            Channel newChannel = new Channel();
-            newChannel.Name = channelName;
-            channels.Add(newChannel);
-
-            foreach(var callback in userCallbacks.Values)
-            {
-                try
+                for (int i = 0; i < channels.Count; i++)
                 {
-                    callback.ChannelListChange(channelName);
+                    if (channels[i].Name == channelName)
+                    {
+                        return false;
+                    }
                 }
-                catch (Exception)
+
+                Channel newChannel = new Channel();
+                newChannel.Name = channelName;
+                channels.Add(newChannel);
+
+                var callbacks = userCallbacks.Values.ToList();
+
+                foreach (var callback in callbacks)
                 {
-                    // Handle or log the exception as needed
+                    try
+                    {
+                        callback.ChannelListChange(channelName);
+                    }
+                    catch (Exception)
+                    {
+                        // Handle or log the exception as needed
+                    }
                 }
             }
 
@@ -135,33 +148,47 @@ namespace ChatServer
                 return;
             }
 
-            for (int i = 0; i < channels.Count; i++)
+            lock (callbackLock)
             {
-                for (int j = 0; j < channels[i].Users.Count; j++)
+                for (int i = 0; i < channels.Count; i++)
                 {
-                    if (channels[i].Users[j] == userId)
+                    for (int j = 0; j < channels[i].Users.Count; j++)
                     {
-                        channels[i].Users.RemoveAt(j);
-                        channels[i].JoinIndexes.RemoveAt(j);
+                        if (channels[i].Users[j] == userId)
+                        {
+                            channels[i].Users.RemoveAt(j);
+                            channels[i].JoinIndexes.RemoveAt(j);
 
-                        break;
+                            break;
+                        }
                     }
+                }
+
+                if (!targetChannel.Users.Contains(userId))
+                {
+                    targetChannel.Users.Add(userId);
+                    targetChannel.JoinIndexes.Add(targetChannel.Messages.Count);
                 }
             }
 
-            if (!targetChannel.Users.Contains(userId))
-            {
-                targetChannel.Users.Add(userId);
-                targetChannel.JoinIndexes.Add(targetChannel.Messages.Count);
-            }
+            var updatedUsers = GetUsers(channelName, userId);
+            var snapshot = updatedUsers.ToList();
 
-            var updatedUsers = GetUsers(userId, channelName);
-
-            foreach(var user in updatedUsers)
+            foreach(var user in snapshot)
             {
-                if (userCallbacks.TryGetValue(user, out var callback))
+                lock(callbackLock)
                 {
-                    callback.MemberlistChange(channelName, updatedUsers);
+                    if (userCallbacks.TryGetValue(user, out var callback))
+                    {
+                        try
+                        {
+                            callback.MemberlistChange(channelName, updatedUsers);
+                        }
+                        catch (Exception)
+                        {
+                            // Handle or log the exception as needed
+                        }
+                    }
                 }
             }
         }
@@ -169,42 +196,101 @@ namespace ChatServer
         [MethodImpl(MethodImplOptions.Synchronized)]
         public bool LeaveChannel(string userId, string channelName)
         {
-            for (int i = 0; i< channels.Count; i++)
+            bool removed = false;
+
+            lock (callbackLock)
             {
-                if (channels[i].Name == channelName)
+                Console.WriteLine($"LeaveChannel called: userId='{userId}', channelName='{channelName}'");
+                for (int i = 0; i < channels.Count; i++)
                 {
-                    int userIndex = channels[i].Users.IndexOf(userId);
-                    if (userIndex != -1)
+                    Console.WriteLine($"Checking channel '{channels[i].Name}', contains user: {channels[i].Users.Contains(userId)}");
+                    if (channels[i].Name == channelName)
                     {
-                        channels[i].Users.RemoveAt(userIndex);
-                        channels[i].JoinIndexes.RemoveAt(userIndex);
-                        return true;
-                    }}
+                        int userIndex = channels[i].Users.IndexOf(userId);
+                        if (userIndex != -1)
+                        {
+                            channels[i].Users.RemoveAt(userIndex);
+                            channels[i].JoinIndexes.RemoveAt(userIndex);
+                            removed = true;
+                        }
+
+                        break;
+                    }
+                }
             }
-            return false;
+            
+            if(removed)
+            {
+                List<string> updatedMembers = GetUsers(channelName, userId);
+
+                lock(callbackLock)
+                {
+                    foreach(string member in updatedMembers)
+                    {
+                        if (userCallbacks.TryGetValue(member, out var callback))
+                        {
+                            try
+                            {
+                                callback.MemberlistChange(channelName, updatedMembers);
+                            }
+                            catch (Exception)
+                            {
+                                // Handle or log the exception as needed
+                            }
+                        }
+                    }
+                }
+            }
+
+            return removed;
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void SendMessage(string channelName, string userId, string message)
         {
-            for (int i = 0; i < channels.Count; i++)
-            {
-                if (channels[i].Name == channelName)
-                {
-                    string chatMessage = userId + ": " + message;
-                    channels[i].Messages.Add(chatMessage);
+            Channel target = null;
 
-                    foreach(var user in channels[i].Users)
+            lock (callbackLock)
+            {
+                for (int i = 0; i < channels.Count; i++)
+                {
+                    if (channels[i].Name == channelName)
+                    {
+                        target = channels[i];
+                        string chatMessage = userId + ": " + message;
+                        channels[i].Messages.Add(chatMessage);
+                        break;
+                    }
+                }
+            }
+
+            if (target != null)
+            {
+                lock (callbackLock)
+                {
+                    var snapshot = target.Users.ToList();
+
+                    foreach (var user in snapshot)
                     {
                         if (userCallbacks.TryGetValue(user, out var callback))
                         {
-                            callback.ReceiveMessage(channelName, userId, message);
+                            try
+                            {
+                                callback.ReceiveMessage(channelName, userId, message);
+                            }
+                            catch (Exception)
+                            {
+                                // Handle or log the exception as needed
+                            }
                         }
-                    }
 
-                    return;
+                    }
                 }
             }
+
+            return;
+            
+
         }
 
         private static readonly List<Channel> channels = new List<Channel>
@@ -262,42 +348,63 @@ namespace ChatServer
         [MethodImpl(MethodImplOptions.Synchronized)]
         public List<Channel> GetChannels()
         {
-            return channels;
+            lock (callbackLock)
+            {
+                return channels.ToList();
+            }
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void SendPrivateMessage(string fromUserId, string toUserId, string message)
         {
-            foreach(var privateChannel in privateChannels)
+            lock (callbackLock)
             {
-                if ((privateChannel.Sender == fromUserId && privateChannel.Recipient == toUserId) ||
-                    (privateChannel.Sender == toUserId && privateChannel.Recipient == fromUserId))
+                foreach (var privateChannel in privateChannels)
                 {
-                    string chatMessage = fromUserId + ": " + message;
-                    privateChannel.Messages.Add(chatMessage);
-                    return;
-                }
-                                 
-            }
+                    if ((privateChannel.Sender == fromUserId && privateChannel.Recipient == toUserId) ||
+                        (privateChannel.Sender == toUserId && privateChannel.Recipient == fromUserId))
+                    {
+                        string chatMessage = fromUserId + ": " + message;
+                        privateChannel.Messages.Add(chatMessage);
+                        return;
+                    }
 
-            PrivateChannel newPrivateChannel = new PrivateChannel
-            {
-                Sender = fromUserId,
-                Recipient = toUserId,
-                Messages = new List<string> { fromUserId + ": " + message }
-            };
-            privateChannels.Add(newPrivateChannel);
+                }
+
+                PrivateChannel newPrivateChannel = new PrivateChannel
+                {
+                    Sender = fromUserId,
+                    Recipient = toUserId,
+                    Messages = new List<string> { fromUserId + ": " + message }
+                };
+                privateChannels.Add(newPrivateChannel);
+
+                if(userCallbacks.TryGetValue(toUserId, out var callback))
+                {
+                    try
+                    {
+                        callback.ReceivePrivateMessage(fromUserId, toUserId, message);
+                    }
+                    catch (Exception)
+                    {
+                        // Handle or log the exception as needed
+                    }
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
         public List<string> GetPrivateMessages(string userId, string otherUserId)
         {
-            foreach(var privateChannel in privateChannels)
+            lock (callbackLock)
             {
-                if ((privateChannel.Sender == userId && privateChannel.Recipient == otherUserId) ||
-                    (privateChannel.Sender == otherUserId && privateChannel.Recipient == userId))
+                foreach (var privateChannel in privateChannels)
                 {
-                    return privateChannel.Messages;
+                    if ((privateChannel.Sender == userId && privateChannel.Recipient == otherUserId) ||
+                        (privateChannel.Sender == otherUserId && privateChannel.Recipient == userId))
+                    {
+                        return privateChannel.Messages;
+                    }
                 }
             }
             return new List<string>();
@@ -320,38 +427,57 @@ namespace ChatServer
 
             string fileId = Guid.NewGuid().ToString();
 
-            files[fileId] = fileData;
-
-            if (!channelFiles.ContainsKey(channelName))
+            lock (callbackLock)
             {
-                channelFiles[channelName] = new List<FileMetaInfo>();
+                files[fileId] = fileData;
+
+                if (!channelFiles.ContainsKey(channelName))
+                {
+                    channelFiles[channelName] = new List<FileMetaInfo>();
+                }
+
+                channelFiles[channelName].Add(new FileMetaInfo
+                {
+                    FileId = fileId,
+                    Filename = fileName,
+                    Sender = fromUserId
+                });
             }
-
-            channelFiles[channelName].Add(new FileMetaInfo
-            {
-                FileId = fileId,
-                Filename = fileName,
-                Sender = fromUserId
-            });
 
             var updatedFiles = GetSharedFiles(channelName);
             var members = GetUsers(channelName, fromUserId);
 
-            foreach (var member in members)
+            var snapshot = members.ToList();
+
+            lock(callbackLock)
             {
-                if(userCallbacks.TryGetValue(member, out var callback))
+                foreach (var member in members)
                 {
-                    callback.ReceiveFile(channelName, updatedFiles);
+                    if (userCallbacks.TryGetValue(member, out var callback))
+                    {
+                        try
+                        {
+                            callback.ReceiveFile(channelName, updatedFiles);
+                        }
+                        catch (Exception)
+                        {
+                            // Handle or log the exception as needed
+                        }
+                    }
                 }
             }
+            
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
         public List<FileMetaInfo> GetSharedFiles(string channelName)
         {
-            if (channelFiles.ContainsKey(channelName))
+            lock(callbackLock)
             {
-                return channelFiles[channelName];
+                if (channelFiles.ContainsKey(channelName))
+                {
+                    return channelFiles[channelName];
+                }
             }
             return new List<FileMetaInfo>();
         }
@@ -359,13 +485,16 @@ namespace ChatServer
         [MethodImpl(MethodImplOptions.Synchronized)]
         public byte[] DownloadFile(string channelName, string fileId)
         {
-            if(channelFiles.ContainsKey(channelName))
+            lock(callbackLock)
             {
-                for (int i = 0; i < channelFiles[channelName].Count; i++)
+                if (channelFiles.ContainsKey(channelName))
                 {
-                    if (channelFiles[channelName][i].FileId == fileId && files.ContainsKey(fileId))
+                    for (int i = 0; i < channelFiles[channelName].Count; i++)
                     {
-                        return files[fileId];
+                        if (channelFiles[channelName][i].FileId == fileId && files.ContainsKey(fileId))
+                        {
+                            return files[fileId];
+                        }
                     }
                 }
             }

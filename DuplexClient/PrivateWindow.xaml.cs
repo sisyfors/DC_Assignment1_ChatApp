@@ -26,29 +26,27 @@ namespace DuplexClient
     {
         private IChatService chatService;
 
-        private IChatServiceCallback foobCallback;
-
         private string currentUserId;
         private string recipientId;
 
-        public PrivateWindow(string currentUserId, string recipientId)
+        public PrivateWindow(IChatService chatService, string currentUserId, string recipientId)
         {
             InitializeComponent();
 
-            DuplexChannelFactory<IChatService> foobFactory;
-            NetTcpBinding netTcpBinding = new NetTcpBinding();
-            string URL = "net.tcp://localhost:8100/ChatService";
-            foobCallback = new CallbackHandler(new MainWindow());
-            foobFactory = new DuplexChannelFactory<IChatService>
-                (foobCallback, netTcpBinding, URL);
-            chatService = foobFactory.CreateChannel();
-
-            PrivateTextBlock.Text = $"Private chat with {recipientId}";
+            this.chatService = chatService;
 
             this.currentUserId = currentUserId;
             this.recipientId = recipientId;
 
+            PrivateTextBlock.Text = $"Private chat with {recipientId}";
+
+
             LoadPrivateMessages();
+        }
+
+        public void AddMessage(string message)
+        {
+            PrivateMessageListBox.Items.Add(message);
         }
 
         private void LoadPrivateMessages()
@@ -81,7 +79,6 @@ namespace DuplexClient
 
             PrivateMessageTextBox.Clear();
 
-            LoadPrivateMessages();
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)

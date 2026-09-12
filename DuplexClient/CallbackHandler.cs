@@ -20,30 +20,37 @@ namespace DuplexClient
 
         public void NewPrivateWindow(string otherUserId, PrivateWindow privateWindow)
         {
-            privateWindows[otherUserId] = privateWindow;
+            lock (privateWindows)
+            {
+                privateWindows[otherUserId] = privateWindow;
+            }
         }
 
         public void ReceivePrivateMessage(string senderId, string recipientId, string message)
         {
-            mainWindow.Dispatcher.Invoke(new Action(() =>
+            mainWindow.Dispatcher.BeginInvoke(new Action(() =>
             {
+                string currentUserId = recipientId;
                 if (privateWindows.ContainsKey(senderId))
                 {
                     privateWindows[senderId].PrivateMessageListBox.Items.Add($"{senderId}: {message}");
                 }
                 else
                 {
-                    PrivateWindow newPrivateWindow = new PrivateWindow(senderId, recipientId);
+                    PrivateWindow newPrivateWindow = new PrivateWindow(mainWindow.chatService,currentUserId, senderId);
                     newPrivateWindow.Show();
                     newPrivateWindow.PrivateMessageListBox.Items.Add($"{senderId}: {message}");
-                    privateWindows[senderId] = newPrivateWindow;
+                    lock (privateWindows)
+                    {
+                        privateWindows[senderId] = newPrivateWindow;
+                    }
                 }
             }));
         }
 
         public void ReceiveMessage(string channelName, string userId, string message)
         {
-            mainWindow.Dispatcher.Invoke(new Action(() =>
+            mainWindow.Dispatcher.BeginInvoke(new Action(() =>
             {
                 mainWindow.MessageListBox.Items.Add($"{userId}: {message}");
             }));
@@ -51,7 +58,7 @@ namespace DuplexClient
 
         public void ReceiveFile(string channelName, List<FileMetaInfo> updatedFiles)
         {
-            mainWindow.Dispatcher.Invoke(new Action(() =>
+            mainWindow.Dispatcher.BeginInvoke(new Action(() =>
             {
                 mainWindow.FilesListBox.Items.Clear();
                 foreach (var file in updatedFiles)
@@ -63,7 +70,7 @@ namespace DuplexClient
 
         public void MemberlistChange(string channelName, List<string> members)
         {
-            mainWindow.Dispatcher.Invoke(new Action(() =>
+            mainWindow.Dispatcher.BeginInvoke(new Action(() =>
             {
                 mainWindow.MemberListBox.Items.Clear();
                 foreach (string member in members)
@@ -75,7 +82,7 @@ namespace DuplexClient
 
         public void ChannelListChange(string channelName)
         {
-            mainWindow.Dispatcher.Invoke(new Action(() =>
+            mainWindow.Dispatcher.BeginInvoke(new Action(() =>
             {
                 mainWindow.ChannelListBox.Items.Add(channelName);
             }));
