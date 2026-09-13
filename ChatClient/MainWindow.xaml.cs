@@ -53,6 +53,26 @@ namespace ChatClient
             string URL = "net.tcp://localhost:8100/ChatService";
             foobFactory = new ChannelFactory<IChatService>(tcp, URL);
             chatService = foobFactory.CreateChannel();
+            Closing += CloseWindow;
+
+        }
+
+        private void CloseWindow(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            pollingFlag = false;
+
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                try
+                {
+                    string reason;
+                    chatService.SignOut(currentUserId, out reason);
+                    currentUserId = null;
+                }
+                catch
+                {
+                }
+            }
         }
 
         private void MemberListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
