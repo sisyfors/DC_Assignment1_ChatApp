@@ -189,6 +189,17 @@ namespace ChatServer
                 }
                 
             }
+
+            var filesInChannel = GetSharedFiles(channelName);
+            if (userCallbacks.TryGetValue(userId, out var joinerCallback))
+            {
+                try
+                {
+                    joinerCallback.ReceiveFile(channelName, filesInChannel);
+                }
+                catch { }
+            }
+
             foreach (string user in disconnectedUsers)
             {
                 ClientDisconnected(user);
