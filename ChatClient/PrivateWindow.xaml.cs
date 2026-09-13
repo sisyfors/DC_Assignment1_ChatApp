@@ -20,7 +20,6 @@ namespace ChatClient
 {
     public partial class PrivateWindow : Window
     {
-        private ChannelFactory<IChatService> channelFactory;
         private IChatService chatService;
 
         private string currentUserId;
@@ -38,16 +37,13 @@ namespace ChatClient
         }
 
         public PrivateWindow(
+            IChatService chatService,
             string currentUserId,
             string recipientId)
         {
             InitializeComponent();
 
-            channelFactory =
-                new ChannelFactory<IChatService>("ChatServiceEndpoint");
-
-            chatService =
-                channelFactory.CreateChannel();
+            this.chatService =chatService;
 
             this.currentUserId =currentUserId;
 
@@ -130,11 +126,19 @@ namespace ChatClient
                 return;
             }
 
-            chatService.SendPrivateMessage(currentUserId,recipientId,message);
+            try
+            {
+                chatService.SendPrivateMessage(currentUserId, recipientId, message);
 
-            PrivateMessageTextBox.Clear();
+                PrivateMessageTextBox.Clear();
 
-            LoadPrivateMessages();
+                LoadPrivateMessages();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to send message: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
         }
 
         private void CloseButton_Click(object sender,RoutedEventArgs e)
@@ -147,6 +151,11 @@ namespace ChatClient
             pollingFlag = false;
 
             base.OnClosed(e);
+        }
+
+        private void SendButton_Click_1(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

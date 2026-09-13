@@ -12,7 +12,6 @@ namespace DuplexClient
     public class CallbackHandler : IChatServiceCallback
     {
         private MainWindow mainWindow;
-        private Dictionary<string, PrivateWindow> privateWindows = new Dictionary<string, PrivateWindow>();
         public CallbackHandler(MainWindow mainWindow)
         {
             this.mainWindow = mainWindow;
@@ -20,9 +19,9 @@ namespace DuplexClient
 
         public void NewPrivateWindow(string otherUserId, PrivateWindow privateWindow)
         {
-            lock (privateWindows)
+            lock (mainWindow.privateWindows)
             {
-                privateWindows[otherUserId] = privateWindow;
+                mainWindow.privateWindows[otherUserId] = privateWindow;
             }
         }
 
@@ -31,20 +30,29 @@ namespace DuplexClient
             mainWindow.Dispatcher.BeginInvoke(new Action(() =>
             {
                 string currentUserId = recipientId;
-                if (privateWindows.ContainsKey(senderId))
+
+                lock (mainWindow.privateWindows)
                 {
-                    privateWindows[senderId].PrivateMessageListBox.Items.Add($"{senderId}: {message}");
-                }
-                else
-                {
-                    PrivateWindow newPrivateWindow = new PrivateWindow(mainWindow.chatService,currentUserId, senderId);
-                    newPrivateWindow.Show();
-                    newPrivateWindow.PrivateMessageListBox.Items.Add($"{senderId}: {message}");
-                    lock (privateWindows)
+                    if (mainWindow.privateWindows.ContainsKey(senderId))
                     {
-                        privateWindows[senderId] = newPrivateWindow;
+                        mainWindow.privateWindows[senderId].PrivateMessageListBox.Items.Add($"{senderId}: {message}");
+                    }
+                    else
+                    {
+                        PrivateWindow newPrivateWindow = new PrivateWindow(mainWindow.chatService, currentUserId, senderId);
+                        newPrivateWindow.Show();
+                        mainWindow.privateWindows[senderId] = newPrivateWindow;
+
+                        newPrivateWindow.Closed += (s, e) =>
+                        {
+                            lock (mainWindow.privateWindows)
+                            {
+                                mainWindow.privateWindows.Remove(senderId);
+                            }
+                        };
                     }
                 }
+                
             }));
         }
 

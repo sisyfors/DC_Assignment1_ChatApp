@@ -70,7 +70,8 @@
                 Content="Send"
                 Width="90"
                 Height="35"
-                IsDefault="True"/>
+                IsDefault="True"
+                Click="SendButton_Click"/>
 
         </Grid>
 

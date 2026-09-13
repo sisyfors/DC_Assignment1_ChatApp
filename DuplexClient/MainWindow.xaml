@@ -161,7 +161,8 @@
 
                         <ListBox
                             x:Name="MemberListBox"
-                            Height="207"/>
+                            Height="207"
+                            MouseDoubleClick="MemberListBox_MouseDoubleClick"/>
                         <TextBlock
                             Text="Files"
                             FontWeight="Bold" Margin="0,5,0,0"

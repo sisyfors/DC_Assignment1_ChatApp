@@ -35,18 +35,52 @@ namespace ChatClient
         private Thread pollingThread;
         private bool pollingFlag;
 
-        private List<PrivateWindow> privateWindows = new List<PrivateWindow>();
+        private Dictionary<string, PrivateWindow> privateWindows = new Dictionary<string, PrivateWindow>();
 
         public MainWindow()
         {
             InitializeComponent();
 
             ChannelFactory<IChatService> foobFactory;
-            NetTcpBinding tcp = new NetTcpBinding();
+            int safeLimit = 4 * 1024 * 1024;
+            NetTcpBinding tcp = new NetTcpBinding()
+            {
+                MaxReceivedMessageSize = safeLimit,
+                MaxBufferSize = safeLimit,
+                TransferMode = TransferMode.Buffered
+            };
 
             string URL = "net.tcp://localhost:8100/ChatService";
             foobFactory = new ChannelFactory<IChatService>(tcp, URL);
             chatService = foobFactory.CreateChannel();
+        }
+
+        private void MemberListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (MemberListBox.SelectedItem != null)
+            {
+                string selectedUserId = MemberListBox.SelectedItem.ToString();
+                if (selectedUserId != currentUserId)
+                {
+                    if (privateWindows.ContainsKey(selectedUserId))
+                    {
+                        privateWindows[selectedUserId].Activate();
+                        return;
+                    }
+
+                    PrivateWindow privateWindow = new PrivateWindow(chatService, currentUserId, selectedUserId);
+                    privateWindows[selectedUserId] = privateWindow;
+                    privateWindow.Show();
+
+                    privateWindow.Closed += (s, e2) =>
+                    {
+                        lock (privateWindows)
+                        {
+                            privateWindows.Remove(selectedUserId);
+                        }
+                    };
+                }
+            }
         }
 
         private void StartPollingThread()
@@ -75,7 +109,7 @@ namespace ChatClient
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        foreach (PrivateWindow window in privateWindows)
+                        foreach (PrivateWindow window in privateWindows.Values.ToList())
                         {
                             if (window.OtherUserId == senderId)
                             {
@@ -84,17 +118,19 @@ namespace ChatClient
                             }
                         }
 
-                        PrivateWindow privateWindow = new PrivateWindow(currentUserId,senderId);
+                        PrivateWindow privateWindow = new PrivateWindow(chatService, currentUserId , senderId);
 
-                        privateWindows.Add(privateWindow);
+                        privateWindows[senderId] = privateWindow;
+                        privateWindow.Show();
 
                         privateWindow.Closed +=
-                            (sender, e) =>
+                            (sender, e2) =>
                             {
-                                privateWindows.Remove(privateWindow);
+                                lock (privateWindows)
+                                {
+                                    privateWindows.Remove(senderId);
+                                }
                             };
-
-                        privateWindow.Show();
                     });
                 }
             }
@@ -305,6 +341,13 @@ namespace ChatClient
                 FilesListBox.Items.Clear();
 
                 UserIdTextBox.Clear();
+
+                foreach(var privateWindow in privateWindows.Values.ToList())
+                {
+                    privateWindow.Close();
+                }
+
+                privateWindows.Clear();
             }
             else
             {
@@ -347,69 +390,18 @@ namespace ChatClient
           object sender,
           RoutedEventArgs e)
         {
-            if (MemberListBox.SelectedItem == null || MemberListBox.SelectedItem.ToString() == currentUserId)
+            string message =
+                MessageTextBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(message))
             {
-                string message =
-                    MessageTextBox.Text.Trim();
-
-                if (string.IsNullOrWhiteSpace(message))
-                {
-                    return;
-                }
-
-                chatService.SendMessage(currentChannelName,currentUserId,message);
-
-                MessageTextBox.Clear();
-
-                LoadMessages();
+                return;
             }
-            else
-            {
-                string message =
-                    MessageTextBox.Text.Trim();
 
-                if (string.IsNullOrWhiteSpace(message))
-                {
-                    return;
-                }
+            chatService.SendMessage(currentChannelName,currentUserId,message);
 
-                string recipientUserId =
-                    MemberListBox.SelectedItem.ToString();
+            MessageTextBox.Clear();
 
-                chatService.SendPrivateMessage(currentUserId,recipientUserId,message);
-
-                MessageTextBox.Clear();
-
-                PrivateWindow existingWindow = null;
-
-                foreach (PrivateWindow window in privateWindows)
-                {
-                    if (window.OtherUserId == recipientUserId)
-                    {
-                        existingWindow = window;
-                        break;
-                    }
-                }
-
-                if (existingWindow != null)
-                {
-                    existingWindow.Activate();
-                }
-                else
-                {
-                    PrivateWindow privateWindow =new PrivateWindow(currentUserId,recipientUserId);
-
-                    privateWindows.Add(privateWindow);
-
-                    privateWindow.Closed +=
-                        (closedSender, closedEvent) =>
-                        {
-                            privateWindows.Remove(privateWindow);
-                        };
-
-                    privateWindow.Show();
-                }
-            }
         }
 
         private void LeaveChannelButton_Click(
@@ -482,8 +474,27 @@ namespace ChatClient
                 string fileName = System.IO.Path.GetFileName(filePath);
                 byte[] fileData = File.ReadAllBytes(filePath);
 
-                chatService.ShareFile(currentChannelName, currentUserId, fileName, fileData);
-                MessageBox.Show("File uploaded successfully.", "Upload File");
+                FileInfo fileInfo = new FileInfo(filePath);
+                if (fileInfo.Length > 2 * 1024 * 1024)
+                {
+                    MessageBox.Show("File exceeds the 2MB limit.", "Upload File");
+                    return;
+                }
+
+                try
+                {   
+                    chatService.ShareFile(currentChannelName, currentUserId, fileName, fileData);
+                    MessageBox.Show("File uploaded successfully.", "Upload File");
+                }
+                catch(FileSizeException ex)
+                {
+                    MessageBox.Show(ex.Message, "Upload File");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"An error occurred: {ex.Message}", "Upload File");
+                }
+
             }
 
             FilesListBox.Items.Clear();

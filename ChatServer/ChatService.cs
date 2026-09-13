@@ -394,6 +394,16 @@ namespace ChatServer
             string chatMessage = fromUserId + ": " + message;
             targetChannel.Messages.Add(chatMessage);
 
+            if (!privateNotifications.ContainsKey(toUserId))
+            {
+                privateNotifications[toUserId] = new List<string>();
+            }
+
+            if (!privateNotifications[toUserId].Contains(fromUserId))
+            {
+                privateNotifications[toUserId].Add(fromUserId);
+            }
+
             if (userCallbacks.TryGetValue(toUserId, out var callback))
             {
                 try
@@ -403,6 +413,7 @@ namespace ChatServer
                 catch (Exception)
                 {
                     ClientDisconnected(toUserId);
+
                 }
             }
 
@@ -429,7 +440,9 @@ namespace ChatServer
         {
             if (privateNotifications.ContainsKey(userId))
             {
-                return privateNotifications[userId].ToList();
+                List<string> notifications = privateNotifications[userId].ToList();
+                privateNotifications[userId].Clear();
+                return notifications;
             }
             return new List<string>();
         }

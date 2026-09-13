@@ -29,7 +29,7 @@ namespace DuplexClient
         private string currentUserId;
         private string currentChannelName;
 
-        private Dictionary<string, PrivateWindow> privateWindows = new Dictionary<string, PrivateWindow>();
+        internal Dictionary<string, PrivateWindow> privateWindows = new Dictionary<string, PrivateWindow>();
 
 
         public MainWindow()
@@ -37,7 +37,13 @@ namespace DuplexClient
             InitializeComponent();
 
             DuplexChannelFactory<IDuplexChatService> foobFactory;
-            NetTcpBinding netTcpBinding = new NetTcpBinding();
+            int safeLimit = 4 * 1024 * 1024;
+            NetTcpBinding netTcpBinding = new NetTcpBinding()
+            {
+                MaxReceivedMessageSize = safeLimit,
+                MaxBufferSize = safeLimit,
+                TransferMode = TransferMode.Buffered
+            };
             string URL = "net.tcp://localhost:8100/DuplexChatService";
             foobCallback = new CallbackHandler(this);
             foobFactory = new DuplexChannelFactory<IDuplexChatService>(foobCallback, netTcpBinding, URL);
@@ -45,6 +51,35 @@ namespace DuplexClient
             chatService = foobFactory.CreateChannel();
 
             Closing += CloseWindow;
+        }
+
+        private void MemberListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (MemberListBox.SelectedItem != null)
+            {
+                string selectedUserId = MemberListBox.SelectedItem.ToString();
+                if (selectedUserId != currentUserId)
+                {
+                    if (privateWindows.ContainsKey(selectedUserId))
+                    {
+                        privateWindows[selectedUserId].Activate();
+                        return;
+                    }
+
+                    PrivateWindow privateWindow = new PrivateWindow(chatService, currentUserId, selectedUserId);
+                    NewPrivateWindow(selectedUserId, privateWindow);
+                    privateWindow.Show();
+
+                    privateWindow.Closed += (s, e2) =>
+                    {
+                        lock (privateWindows)
+                        {
+                            privateWindows.Remove(selectedUserId);
+                        }
+                    };
+
+                }
+            }
         }
 
         private void CloseWindow(object sender, System.ComponentModel.CancelEventArgs e)
@@ -58,8 +93,15 @@ namespace DuplexClient
                 }
                 catch (Exception)
                 {
-                    
+
                 }
+
+                foreach (var privateWindow in privateWindows.Values.ToList())
+                {
+                    privateWindow.Close();
+                }
+
+                privateWindows.Clear();
             }
         }
 
@@ -263,7 +305,6 @@ namespace DuplexClient
 
             MessageListBox.Items.Clear();
 
-            await LoadMembers();
         }
 
         private async void SignOutButton_Click(
@@ -331,6 +372,13 @@ namespace DuplexClient
 
                 UserIdTextBox.Clear();
                 UserIdTextBox.Focus();
+
+                foreach(var privateWindow in privateWindows.Values.ToList())
+                {
+                    privateWindow.Close();
+                }
+
+                privateWindows.Clear();
             }
             else
             {
@@ -390,37 +438,18 @@ namespace DuplexClient
                 return;
             }
 
-            if (MemberListBox.SelectedItem == null || MemberListBox.SelectedItem.ToString() == currentUserId)
-            {
-                MessageTextBox.Clear();
+            MessageTextBox.Clear();
 
-                try
-                {
-                    await Task.Run(() => chatService.SendMessage(currentChannelName, currentUserId, message));
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Unable to send message: {ex.Message}", "Send Message");
-                    return;
-                }
-            }
-            else
+            try
             {
-                string recipientUserId = MemberListBox.SelectedItem.ToString();
-                MessageTextBox.Clear();
-
-                try
-                {
-                    await Task.Run(() => chatService.SendPrivateMessage(currentUserId, recipientUserId, message));
-                    PrivateWindow privateWindow = new PrivateWindow(chatService, currentUserId, recipientUserId);
-                    privateWindow.Show();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Unable to send private message: {ex.Message}", "Send Private Message");
-                    return;
-                }
+                await Task.Run(() => chatService.SendMessage(currentChannelName, currentUserId, message));
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Unable to send message: {ex.Message}", "Send Message");
+                return;
+            }
+
         }
 
         private async void LeaveChannelButton_Click(
@@ -503,6 +532,13 @@ namespace DuplexClient
                 string filePath = uploadBox.FileName;
                 string fileName = System.IO.Path.GetFileName(filePath);
 
+                FileInfo fileInfo = new FileInfo(filePath);
+                if (fileInfo.Length > 2 * 1024 * 1024)
+                {
+                    MessageBox.Show("File exceeds the 2MB limit.", "Upload File");
+                    return;
+                }
+
                 try
                 {
                     byte[] fileData = await Task.Run(() => File.ReadAllBytes(filePath));
@@ -526,7 +562,7 @@ namespace DuplexClient
                 MessageBox.Show("Please select a file to download.", "Download File");
                 return;
             }
-
+            
             try
             {
                 byte[] fileData = await Task.Run(() => chatService.DownloadFile(currentChannelName, selectedFile.FileId));

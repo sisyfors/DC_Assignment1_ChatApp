@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.ServiceModel;
 using ChatContracts;
+using System.Runtime.Serialization;
 
 namespace ChatServer
 {
@@ -13,8 +14,18 @@ namespace ChatServer
         static void Main(string[] args)
         {
             ServiceHost host;
+
+            int safeLimit = 4 * 1024 * 1024;
+            NetTcpBinding tcp = new NetTcpBinding()
+            {
+                MaxReceivedMessageSize = safeLimit,
+                MaxBufferSize = safeLimit,
+                TransferMode = TransferMode.Buffered
+            };
+
+            tcp.ReaderQuotas.MaxArrayLength = safeLimit;
+
             //This represents a tcp/ip binding in the Windows network stack
-            NetTcpBinding tcp = new NetTcpBinding();
             //Bind server to the implementation of DataServer
             host = new ServiceHost(typeof(ChatService));
             /*Present the publicly accessible interface to the client. 0.0.0.0 tells .net to

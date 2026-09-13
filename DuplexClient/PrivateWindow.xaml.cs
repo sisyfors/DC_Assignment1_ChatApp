@@ -77,6 +77,8 @@ namespace DuplexClient
                 recipientId,
                 message);
 
+            PrivateMessageListBox.Items.Add($"{currentUserId}: {message}");
+
             PrivateMessageTextBox.Clear();
 
         }
